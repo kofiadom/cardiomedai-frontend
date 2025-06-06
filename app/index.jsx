@@ -1,15 +1,13 @@
-import { Text, View, SafeAreaView, Dimensions, Platform, ScrollView, TouchableOpacity } from "react-native";
+import { Text, View, SafeAreaView, Dimensions, ScrollView, TouchableOpacity } from "react-native";
 import tw from "twrnc";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient'
+import { useNavigation } from "@react-navigation/native";
+import ScreenHeader from '../components/ScreenHeader';
 
-function Index() {
-  const screenWidth = Dimensions.get('window').width;
-  const containerWidth = screenWidth * 0.92;
-
-  const DailyHealthTips = `Good morning! I noticed your blood pressure readings this week have shown some fluctuations. It's important to maintain a healthy lifestyle to manage your blood pressure effectively. Here are a few tips:
+const DailyHealthTips = `Good morning! I noticed your blood pressure readings this week have shown some fluctuations. It's important to maintain a healthy lifestyle to manage your blood pressure effectively. Here are a few tips:
 
 • Stay Active: Aim for at least 30 minutes of moderate exercise most days of the week. Activities like walking, cycling, or swimming can help lower your blood pressure.
 
@@ -21,10 +19,16 @@ function Index() {
 
 • Stay Hydrated: Drink plenty of water throughout the day to maintain good hydration levels.`;
 
+function Index() {
+  const screenWidth = Dimensions.get('window').width;
+  const containerWidth = screenWidth * 0.92;
+
+  const navigation = useNavigation();
+
   const quickActions = [
     { icon: "add-circle-outline", label: "Add Reading", color: "#10b981", bgColor: "#ecfdf5", borderColor: "#a7f3d0" },
     { icon: "scan-outline", label: "Scan Device", color: "#3b82f6", bgColor: "#eff6ff", borderColor: "#bfdbfe" },
-    { icon: "cloud-upload-outline", label: "Add Image", color: "#8b5cf6", bgColor: "#f5f3ff", borderColor: "#ddd6fe" },
+    { icon: "cloud-upload-outline", label: "Add Image", color: "#8b5cf6", bgColor: "#f5f3ff", borderColor: "#ddd6fe", route: 'screens/UploadBPMonitorImg' },
     { icon: "calendar-outline", label: "History", color: "#f59e0b", bgColor: "#fef3c7", borderColor: "#fde68a" },
     { icon: "chatbox-outline", label: "Ask Question", color: "#ef4444", bgColor: "#fef2f2", borderColor: "#fecaca" },
     { icon: "time-outline", label: "Reminders", color: "#06b6d4", bgColor: "#ecfeff", borderColor: "#a5f3fc" },
@@ -41,32 +45,9 @@ function Index() {
     <SafeAreaView style={tw`flex-1 bg-[#f8fafc]`}>
       <StatusBar style="dark" />
       <View style={[tw`flex-1 mx-auto`, { width: containerWidth }]}>
-
-        {/* Header Section */}
-        <View style={[tw`flex-row justify-between items-center px-1 ${Platform.OS === 'ios' ? 'mt-4' : 'mt-12'}`]}>
-          <View style={tw`flex flex-row justify-center items-center`}>
-            <LinearGradient
-              colors={['#3b82f6', '#1e40af']}
-              style={tw`w-14 h-14 mr-3 rounded-2xl flex justify-center items-center`}
-            >
-              <Text style={tw`font-bold text-white text-base`}>KA</Text>
-            </LinearGradient>
-            <View>
-              <Text style={tw`text-[#64748b] text-sm`}>Good morning</Text>
-              <Text style={tw`font-bold text-[#1e293b] text-base`}>Kwabena Asumadu</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={tw`flex flex-row items-center bg-white rounded-2xl px-3 py-3 border border-[#e2e8f0]`}>
-            <View style={tw`w-2.5 h-2.5 bg-[#ef4444] rounded-full mr-2`} />
-            <Text style={tw`font-bold text-[#1e293b] text-sm mr-1`}>3</Text>
-            <Ionicons name="notifications-outline" size={22} color="#1e293b" />
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader />
 
         <ScrollView style={tw`flex-1 mt-6`} showsVerticalScrollIndicator={false}>
-          
-          {/* Blood Pressure Card */}
           <LinearGradient
             colors={['#ffffff', '#f0f9ff', '#e0f2fe']}
             start={{ x: 0, y: 0 }}
@@ -129,10 +110,10 @@ function Index() {
               <TouchableOpacity key={index} style={tw`flex flex-row justify-between items-center py-4 ${index !== todayTasks.length - 1 ? 'border-b border-[#f1f5f9]' : ''}`}>
                 <View style={tw`flex flex-row items-center flex-1`}>
                   <View style={tw`w-12 h-12 ${task.completed ? 'bg-[#ecfdf5]' : 'bg-[#f8fafc]'} rounded-2xl flex justify-center items-center mr-4`}>
-                    <Ionicons 
-                      name={task.icon} 
-                      size={20} 
-                      color={task.completed ? "#10b981" : "#64748b"} 
+                    <Ionicons
+                      name={task.icon}
+                      size={20}
+                      color={task.completed ? "#10b981" : "#64748b"}
                     />
                   </View>
                   <View style={tw`flex-1`}>
@@ -142,10 +123,10 @@ function Index() {
                     <Text style={tw`text-[#64748b] text-sm`}>{task?.time}</Text>
                   </View>
                 </View>
-                <Ionicons 
-                  name={task.completed ? "checkmark-circle" : "ellipse-outline"} 
-                  size={24} 
-                  color={task.completed ? "#10b981" : "#cbd5e1"} 
+                <Ionicons
+                  name={task.completed ? "checkmark-circle" : "ellipse-outline"}
+                  size={24}
+                  color={task.completed ? "#10b981" : "#cbd5e1"}
                 />
               </TouchableOpacity>
             ))}
@@ -156,7 +137,7 @@ function Index() {
 
             <View style={tw`flex flex-row flex-wrap justify-between`}>
               {quickActions.map((action, index) => (
-                <TouchableOpacity key={index} style={tw`w-[30%] mb-6`}>
+                <TouchableOpacity key={index} style={tw`w-[30%] mb-6`} onPress={() => navigation.navigate(action.route)}>
                   <LinearGradient
                     colors={[action.bgColor, 'rgba(255,255,255,0.8)']}
                     style={tw`w-full aspect-square rounded-3xl flex justify-center items-center mb-3 border border-[${action.borderColor}]`}

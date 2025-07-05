@@ -14,8 +14,8 @@ function ScreenHeader() {
           <Text style={tw`font-bold text-white text-base`}>KA</Text>
         </LinearGradient>
         <View>
-          <Text style={tw`text-[#64748b] text-sm`}>Good morning</Text>
-          <Text style={tw`font-bold text-[#1e293b] text-base`}>Kwabena Asumadu</Text>
+          <Text style={tw`text-[#64748b] text-xs`}>Hello</Text>
+          <Text style={tw`font-bold text-[#1e293b] text-sm`}>Kofi Adom</Text>
         </View>
       </View>
 

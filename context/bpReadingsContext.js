@@ -1,9 +1,9 @@
 import { createContext } from "react";
 import useSWR from "swr";
 
-const UserProvider = createContext();
+const BpReaderProvider = createContext();
 
-const ENDPOINT = "https://cardiomedai-api.onrender.com/users/";
+const ENDPOINT = "https://cardiomedai-api.onrender.com/bp/readings/1";
 
 const fetcher = async (url) => {
   const res = await fetch(url, {
@@ -21,13 +21,13 @@ const fetcher = async (url) => {
   return data;
 }
 
-export const UserContext = ({ children }) => {
+export const BpReaderContext = ({ children }) => {
   const { data, error, isLoading, mutate } = useSWR(ENDPOINT, fetcher);
   return (
-    <UserProvider.Provider value={{ data, error, isLoading, mutate }}>
+    <BpReaderProvider.Provider value={{ data, error, isLoading, mutate }}>
       {children}
-    </UserProvider.Provider>
+    </BpReaderProvider.Provider>
   )
 }
 
-export default UserProvider;
+export default BpReaderProvider;

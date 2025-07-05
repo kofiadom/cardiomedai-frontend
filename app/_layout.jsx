@@ -1,10 +1,16 @@
 import { Stack } from "expo-router";
-import { UserContext } from "../context/userContext";
+import { BpReaderContext } from '../context/bpReadingsContext';
+import { AverageBpContext } from '../context/averageReadings';
+import { HealthAdvisorContext } from '../context/healthAdvisorContext';
 
 export default function RootLayout() {
   return (
-    <UserContext>
-      <Stack screenOptions={{ headerShown: false }} />
-    </UserContext>
+    <BpReaderContext>
+      <AverageBpContext>
+        <HealthAdvisorContext>
+          <Stack screenOptions={{ headerShown: false }} />
+        </HealthAdvisorContext>
+      </AverageBpContext>
+    </BpReaderContext>
   );
 }

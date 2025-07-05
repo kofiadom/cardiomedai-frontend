@@ -1,15 +1,14 @@
+import { useEffect } from "react";
 import {
   Text,
   View,
   SafeAreaView,
   Dimensions,
+  Image
 } from "react-native";
 import tw from "twrnc";
 import { StatusBar } from "expo-status-bar";
-import LottieView from "lottie-react-native";
 import { useRouter } from "expo-router";
-import { useEffect, useContext } from "react";
-import UserProvider from "../context/userContext";
 
 
 function Index() {
@@ -17,26 +16,27 @@ function Index() {
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
 
-  const { data, isLoading } = useContext(UserProvider);
-
   useEffect(() => {
-    if (!isLoading) {
-      router.replace("/screens/Home");
-    }
-  }, [isLoading, data, router]);
+    const timer = setTimeout(() => {
+      router.push('/screens/Home');
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-blue-200`}>
+    <SafeAreaView style={tw`flex-1 bg-[#fff]`}>
       <StatusBar style="dark" />
-      <View style={[tw`flex-1 mx-auto`, { width: containerWidth }]}>
-        <View style={tw`flex justify-center items-center w-35 mx-auto`}>
-          <LottieView
-            source={require("../assets/animations/heart.json")}
-            autoPlay
-            loop
-            style={{ width: "100%", height: "100%" }}
+      <View style={[tw`flex-1 mx-auto justify-center items-center`, { width: containerWidth }]}>
+        <View style={tw`flex justify-center items-center`}>
+          <Image
+            source={require("../assets/images/logo.png")}
+            style={{ width: 150, height: 150 }}
           />
+          <Text style={tw`text-xl font-bold text-[#1e40af] mt-4 tracking-wider`}>
+            CardioMed
+          </Text>
         </View>
       </View>
     </SafeAreaView>

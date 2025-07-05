@@ -1,3 +1,4 @@
+import { useContext, useState } from "react";
 import {
   Text,
   View,
@@ -13,24 +14,22 @@ import LottieView from "lottie-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import ScreenHeader from "../../components/ScreenHeader";
+import BpReaderProvider from "../../context/bpReadingsContext";
+import AverageBpProvider from "../../context/averageReadings";
+import HealthAdvisorProvider from "../../context/healthAdvisorContext";
 
-const DailyHealthTips = `Good morning! I noticed your blood pressure readings this week have shown some fluctuations. It's important to maintain a healthy lifestyle to manage your blood pressure effectively. Here are a few tips:
-
-• Stay Active: Aim for at least 30 minutes of moderate exercise most days of the week. Activities like walking, cycling, or swimming can help lower your blood pressure.
-
-• Eat a Balanced Diet: Focus on whole foods like fruits, vegetables, whole grains, and lean proteins. Reduce your intake of salt and processed foods.
-
-• Monitor Your Blood Pressure: Keep track of your readings regularly to understand how your lifestyle changes are affecting your health.
-
-• Manage Stress: Practice relaxation techniques such as deep breathing, meditation, or yoga to help reduce stress levels.
-
-• Stay Hydrated: Drink plenty of water throughout the day to maintain good hydration levels.`;
+function extractDate(date) {
+  return date?.split("T")[0];
+}
 
 function Index() {
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-
   const navigation = useNavigation();
+  const { data } = useContext(BpReaderProvider)
+  const { average } = useContext(AverageBpProvider);
+  const { advisor } = useContext(HealthAdvisorProvider);
+
 
   const quickActions = [
     {
@@ -71,6 +70,8 @@ function Index() {
       color: "#ef4444",
       bgColor: "#fef2f2",
       shadowColor: "#ef4444",
+      route: "screens/KnowledgeAgent",
+
     },
     {
       icon: "notifications",
@@ -125,19 +126,19 @@ function Index() {
                 <View style={tw`flex-1`}>
                   <View style={tw`flex-row items-center mb-3`}>
                     <View style={tw`bg-blue-100 rounded-full p-2 mr-3`}>
-                      <Ionicons name="heart" size={20} color="#0369a1" />
+                      <Ionicons name="heart" size={18} color="#0369a1" />
                     </View>
-                    <Text style={tw`font-bold text-lg text-blue-900`}>
+                    <Text style={tw`font-bold text-sm text-blue-900`}>
                       Latest Reading
                     </Text>
                   </View>
 
                   <View style={tw`mb-4`}>
-                    <Text style={tw`font-black text-4xl text-blue-900 mb-1`}>
-                      150/99
+                    <Text style={tw`font-black text-2xl text-blue-900 mb-1.5`}>
+                      {`${data[0]?.systolic} / ${data[0]?.diastolic}`}
                     </Text>
-                    <Text style={tw`text-blue-700 font-medium`}>
-                      99 BPM • Today 8:45 AM
+                    <Text style={tw`text-blue-700 font-medium text-sm`}>
+                      {`${data[0]?.pulse} BPM • ${extractDate(data[0]?.reading_time)}`}
                     </Text>
                   </View>
 
@@ -146,8 +147,8 @@ function Index() {
                   >
                     <View style={tw`flex-row items-center`}>
                       <Ionicons name="warning" size={16} color="#dc2626" />
-                      <Text style={tw`font-bold text-sm text-red-600 ml-2`}>
-                        Stage 2 High
+                      <Text style={tw`font-bold text-xs text-red-600 ml-2`}>
+                        {data[0]?.interpretation}
                       </Text>
                     </View>
                   </View>
@@ -169,26 +170,19 @@ function Index() {
               >
                 <View style={tw`items-center`}>
                   <Text style={tw`text-xs text-blue-600 font-medium mb-1`}>
-                    WEEK AVG
+                    AVERAGE
                   </Text>
-                  <Text style={tw`font-bold text-blue-900`}>145/92</Text>
+                  <Text style={tw`font-bold text-blue-900 text-xs`}>
+                    {`${average?.averages?.systolic} / ${average?.averages?.diastolic} . P=${average?.averages?.pulse}`}
+                  </Text>
                 </View>
+
                 <View style={tw`w-px bg-blue-200`} />
                 <View style={tw`items-center`}>
                   <Text style={tw`text-xs text-blue-600 font-medium mb-1`}>
-                    TREND
+                    TOTAL READINGS
                   </Text>
-                  <View style={tw`flex-row items-center`}>
-                    <Ionicons name="trending-up" size={14} color="#dc2626" />
-                    <Text style={tw`font-bold text-red-600 ml-1`}>↑ 5%</Text>
-                  </View>
-                </View>
-                <View style={tw`w-px bg-blue-200`} />
-                <View style={tw`items-center`}>
-                  <Text style={tw`text-xs text-blue-600 font-medium mb-1`}>
-                    READINGS
-                  </Text>
-                  <Text style={tw`font-bold text-blue-900`}>28</Text>
+                  <Text style={tw`font-bold text-blue-900 text-xs`}>{average?.total_readings}</Text>
                 </View>
               </View>
             </View>
@@ -206,11 +200,11 @@ function Index() {
                 <Ionicons name="bulb" size={22} color="white" />
               </LinearGradient>
               <View>
-                <Text style={tw`text-gray-900 font-bold text-lg`}>
+                <Text style={tw`text-gray-900 font-bold text-sm`}>
                   Health Insights
                 </Text>
-                <Text style={tw`text-gray-500 text-sm`}>
-                  Personalized for you
+                <Text style={tw`text-gray-500 text-xs`}>
+                  Your health advisor
                 </Text>
               </View>
             </View>
@@ -223,7 +217,7 @@ function Index() {
                 showsVerticalScrollIndicator={false}
               >
                 <Text style={tw`text-gray-700 leading-6 text-sm`}>
-                  {DailyHealthTips}
+                  {advisor?.advisor_response}
                 </Text>
               </ScrollView>
             </View>
@@ -259,15 +253,15 @@ function Index() {
               <TouchableOpacity
                 key={index}
                 style={tw`flex flex-row items-center py-4 ${index !== todayTasks.length - 1
-                    ? "border-b border-gray-50"
-                    : ""
+                  ? "border-b border-gray-50"
+                  : ""
                   }`}
                 activeOpacity={0.7}
               >
                 <View
                   style={tw`w-14 h-14 ${task.completed
-                      ? "bg-emerald-50 border-emerald-200"
-                      : "bg-gray-50 border-gray-200"
+                    ? "bg-emerald-50 border-emerald-200"
+                    : "bg-gray-50 border-gray-200"
                     } border rounded-2xl flex justify-center items-center mr-4`}
                 >
                   <Ionicons

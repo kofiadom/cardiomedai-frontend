@@ -217,7 +217,7 @@ function Index() {
                 showsVerticalScrollIndicator={false}
               >
                 <Text style={tw`text-gray-700 leading-6 text-sm`}>
-                  {advisor?.advisor_response}
+                  {advisor?.advisor_response || 'loading...'}
                 </Text>
               </ScrollView>
             </View>
@@ -266,19 +266,19 @@ function Index() {
                 >
                   <Ionicons
                     name={task.icon}
-                    size={22}
+                    size={20}
                     color={task.completed ? "#10b981" : "#64748b"}
                   />
                 </View>
 
                 <View style={tw`flex-1`}>
                   <Text
-                    style={tw`font-semibold text-gray-900 text-base mb-1 ${task.completed ? "line-through opacity-60" : ""
+                    style={tw`font-semibold text-gray-900 text-sm mb-1 ${task.completed ? "line-through opacity-60" : ""
                       }`}
                   >
                     {task.title}
                   </Text>
-                  <Text style={tw`text-gray-500 text-sm`}>{task?.time}</Text>
+                  <Text style={tw`text-gray-500 text-xs`}>{task?.time}</Text>
                 </View>
 
                 <TouchableOpacity style={tw`ml-4`}>
@@ -297,7 +297,7 @@ function Index() {
           {/* Enhanced Quick Actions */}
           <View style={tw`mb-8`}>
             <View style={tw`flex-row items-center justify-between mb-6`}>
-              <Text style={tw`font-bold text-xl text-gray-900`}>
+              <Text style={tw`font-bold text-base text-gray-900`}>
                 Quick Actions
               </Text>
               <TouchableOpacity>

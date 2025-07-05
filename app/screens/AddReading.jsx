@@ -6,31 +6,41 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Image,
   KeyboardAvoidingView,
   Alert,
 } from "react-native";
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import tw from "twrnc";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../../components/ScreenHeader";
 
 function AddReading() {
+  const router = useRouter()
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
+  const user_id = 1
 
-  // State for input fields
-  const [systolic, setSystolic] = useState("");
-  const [diastolic, setDiastolic] = useState("");
-  const [pulse, setPulse] = useState("");
-  const [device, setDevice] = useState("");
-  const [notes, setNotes] = useState("");
+  const [formData, setFormData] = useState({
+    systolic: '',
+    diastolic: '',
+    pulse: '',
+    device: '',
+    notes: ''
+  })
+
+  // Input change handlers
+  const setSystolic = (value) => setFormData(prev => ({ ...prev, systolic: value }));
+  const setDiastolic = (value) => setFormData(prev => ({ ...prev, diastolic: value }));
+  const setPulse = (value) => setFormData(prev => ({ ...prev, pulse: value }));
+  const setDevice = (value) => setFormData(prev => ({ ...prev, device: value }));
+  const setNotes = (value) => setFormData(prev => ({ ...prev, notes: value }));
 
   // Validation and category determination
   const getBPCategory = () => {
-    const sys = parseInt(systolic);
-    const dia = parseInt(diastolic);
+    const sys = parseInt(formData.systolic);
+    const dia = parseInt(formData.diastolic);
 
     if (!sys || !dia) return null;
 
@@ -43,14 +53,51 @@ function AddReading() {
     return null;
   };
 
-  const handleSave = () => {
-    if (!systolic || !diastolic) {
+  const handleSave = async () => {
+    if (!formData.systolic || !formData.diastolic) {
       Alert.alert("Missing Information", "Please enter both systolic and diastolic pressure values.");
       return;
     }
 
-    // Add your save logic here
-    Alert.alert("Success", "Blood pressure reading saved successfully!");
+    try {
+      const res = await fetch(`https://cardiomedai-api.onrender.com/bp/readings/?user_id=${user_id}`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": 'application/json'
+        },
+        body: JSON.stringify({
+          systolic: parseInt(formData.systolic),
+          diastolic: parseInt(formData.diastolic),
+          pulse: formData.pulse ? parseInt(formData.pulse) : null,
+          device: formData.device || null,
+          notes: formData.notes || null
+        })
+      })
+
+      const data = await res.json();
+
+      if (res.ok) {
+        console.log('success', data);
+        Alert.alert("Success", "Blood pressure reading saved successfully!");
+        // Reset form
+        setFormData({
+          systolic: '',
+          diastolic: '',
+          pulse: '',
+          device: '',
+          notes: ''
+        });
+        router.push('/')
+      } else {
+        console.log('data', data);
+        Alert.alert("Error", "Failed to save reading. Please try again.");
+      }
+
+    } catch (error) {
+      console.log('error occured when adding readings', error);
+      Alert.alert("Error", "Network error. Please check your connection and try again.");
+    }
+
   };
 
   const bpCategory = getBPCategory();
@@ -113,11 +160,11 @@ function AddReading() {
                 </Text>
                 <View style={tw`relative`}>
                   <TextInput
-                    style={tw`bg-gray-50 border-2 ${systolic ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-4 text-2xl font-bold text-center text-gray-900`}
+                    style={tw`bg-gray-50 border-2 ${formData.systolic ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-4 text-2xl font-bold text-center text-gray-900`}
                     keyboardType="numeric"
                     placeholder="120"
                     placeholderTextColor="#9CA3AF"
-                    value={systolic}
+                    value={formData.systolic}
                     onChangeText={setSystolic}
                     returnKeyType="next"
                     maxLength={3}
@@ -137,11 +184,11 @@ function AddReading() {
                 </Text>
                 <View style={tw`relative`}>
                   <TextInput
-                    style={tw`bg-gray-50 border-2 ${diastolic ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-4 text-2xl font-bold text-center text-gray-900`}
+                    style={tw`bg-gray-50 border-2 ${formData.diastolic ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-4 text-2xl font-bold text-center text-gray-900`}
                     keyboardType="numeric"
                     placeholder="80"
                     placeholderTextColor="#9CA3AF"
-                    value={diastolic}
+                    value={formData.diastolic}
                     onChangeText={setDiastolic}
                     returnKeyType="next"
                     maxLength={3}
@@ -163,11 +210,11 @@ function AddReading() {
                 <Ionicons name="pulse" size={16} color="#6B7280" /> Pulse Rate (BPM)
               </Text>
               <TextInput
-                style={tw`bg-gray-50 border-2 ${pulse ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-3 text-lg`}
+                style={tw`bg-gray-50 border-2 ${formData.pulse ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-3 text-lg`}
                 keyboardType="numeric"
                 placeholder="72"
                 placeholderTextColor="#9CA3AF"
-                value={pulse}
+                value={formData.pulse}
                 onChangeText={setPulse}
                 returnKeyType="next"
                 maxLength={3}
@@ -180,10 +227,10 @@ function AddReading() {
                 <Ionicons name="medical" size={16} color="#6B7280" /> Device Used
               </Text>
               <TextInput
-                style={tw`bg-gray-50 border-2 ${device ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-3 text-lg`}
+                style={tw`bg-gray-50 border-2 ${formData.device ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-3 text-lg`}
                 placeholder="e.g. Omron HEM-7120"
                 placeholderTextColor="#9CA3AF"
-                value={device}
+                value={formData.device}
                 onChangeText={setDevice}
                 returnKeyType="next"
               />
@@ -195,10 +242,10 @@ function AddReading() {
                 <Ionicons name="document-text" size={16} color="#6B7280" /> Notes
               </Text>
               <TextInput
-                style={tw`bg-gray-50 border-2 ${notes ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-3 text-lg min-h-24`}
+                style={tw`bg-gray-50 border-2 ${formData.notes ? 'border-blue-200' : 'border-gray-200'} rounded-xl px-4 py-3 text-lg min-h-24`}
                 placeholder="Any additional notes about this reading..."
                 placeholderTextColor="#9CA3AF"
-                value={notes}
+                value={formData.notes}
                 onChangeText={setNotes}
                 multiline
                 numberOfLines={4}

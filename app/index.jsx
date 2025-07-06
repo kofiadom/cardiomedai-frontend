@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useContext } from "react";
 import {
   Text,
   View,
@@ -9,21 +9,24 @@ import {
 import tw from "twrnc";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
+import BpReaderProvider from "@/context/bpReadingsContext";
+import AverageBpProvider from "@/context/averageReadings";
+import HealthAdvisorProvider from "@/context/healthAdvisorContext";
 
 
 function Index() {
   const router = useRouter();
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
+  const { averageLoading } = useContext(AverageBpProvider);
+  const { bpReaderLoading } = useContext(BpReaderProvider);
+  const { advisorLoading } = useContext(HealthAdvisorProvider)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!averageLoading && !bpReaderLoading && !advisorLoading) {
       router.push('/screens/Home');
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
+    }
+  }, [averageLoading, bpReaderLoading, advisorLoading])
 
   return (
     <SafeAreaView style={tw`flex-1 bg-[#fff]`}>

@@ -22,9 +22,9 @@ const fetcher = async (url) => {
 }
 
 export const HealthAdvisorContext = ({ children }) => {
-  const { data: advisor, error, isLoading, mutate } = useSWR(ENDPOINT, fetcher);
+  const { data: advisor, error, isLoading: advisorLoading, mutate } = useSWR(ENDPOINT, fetcher);
   return (
-    <HealthAdvisorProvider.Provider value={{ advisor, error, isLoading, mutate }}>
+    <HealthAdvisorProvider.Provider value={{ advisor, error, advisorLoading, mutate }}>
       {children}
     </HealthAdvisorProvider.Provider>
   )

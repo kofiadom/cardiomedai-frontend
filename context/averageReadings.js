@@ -22,9 +22,9 @@ const fetcher = async (url) => {
 }
 
 export const AverageBpContext = ({ children }) => {
-  const { data: average, error, isLoading, mutate } = useSWR(ENDPOINT, fetcher);
+  const { data: average, error, isLoading: averageLoading, mutate } = useSWR(ENDPOINT, fetcher);
   return (
-    <AverageBpProvider.Provider value={{ average, error, isLoading, mutate }}>
+    <AverageBpProvider.Provider value={{ average, error, averageLoading, mutate }}>
       {children}
     </AverageBpProvider.Provider>
   )

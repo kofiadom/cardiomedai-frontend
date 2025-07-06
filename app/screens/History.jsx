@@ -12,6 +12,7 @@ import {
 import { useState, useContext } from "react";
 import { StatusBar } from "expo-status-bar";
 import tw from "twrnc";
+import { truncate } from "cod-string-magic";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../../components/ScreenHeader";
 import BpReaderProvider from "../../context/bpReadingsContext";
@@ -87,11 +88,11 @@ function History() {
                 />
               </View>
               <View style={tw`flex-1`}>
-                <Text style={tw`font-semibold text-gray-900`}>
+                <Text style={tw`font-semibold text-gray-900 text-sm`}>
                   Blood Pressure
                 </Text>
-                <Text style={tw`text-sm text-gray-500`}>
-                  {item.device_id || 'Manual Entry'}
+                <Text style={tw`text-xs text-gray-500`}>
+                  {truncate(item.device_id, 28) || 'Manual Entry'}
                 </Text>
               </View>
               <View style={[tw`px-2 py-1 rounded-full`, tw`${getStatusBg(status)}`]}>
@@ -105,24 +106,16 @@ function History() {
             <View style={tw`mb-3`}>
               <View style={tw`flex-row items-center space-x-4`}>
                 <View>
-                  <Text style={tw`text-2xl font-bold text-gray-900`}>
-                    {item.systolic}/{item.diastolic}
+                  <Text style={tw`text-base font-bold text-gray-900`}>
+                    {item.systolic}/{item.diastolic}mmHg - {item.pulse}BPM
                   </Text>
-                  <Text style={tw`text-sm text-gray-500`}>mmHg</Text>
-                </View>
-                <View style={tw`h-8 w-px bg-gray-200`} />
-                <View>
-                  <Text style={tw`text-lg font-semibold text-gray-700`}>
-                    {item.pulse}
-                  </Text>
-                  <Text style={tw`text-sm text-gray-500`}>BPM</Text>
                 </View>
               </View>
             </View>
 
             {/* Interpretation */}
             <View style={tw`mb-2`}>
-              <Text style={tw`text-sm text-gray-700 italic`}>
+              <Text style={tw`text-xs text-gray-700 italic`}>
                 {item.interpretation}
               </Text>
             </View>
@@ -130,7 +123,7 @@ function History() {
             {/* Date and Time */}
             <View style={tw`flex-row items-center`}>
               <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-              <Text style={tw`text-sm text-gray-500 ml-1`}>
+              <Text style={tw`text-xs text-gray-500 ml-1`}>
                 {formattedDate} at {formattedTime}
               </Text>
             </View>
@@ -139,7 +132,7 @@ function History() {
             {item.notes && (
               <View style={tw`mt-2 flex-row items-start`}>
                 <Ionicons name="document-text-outline" size={14} color="#6B7280" style={tw`mt-0.5`} />
-                <Text style={tw`text-sm text-gray-600 ml-1 flex-1`}>
+                <Text style={tw`text-xs text-gray-600 ml-1 flex-1`}>
                   {item.notes}
                 </Text>
               </View>
@@ -166,10 +159,10 @@ function History() {
         >
           {/* Search Bar */}
           <View style={tw`bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100`}>
-            <View style={tw`flex-row items-center bg-gray-50 rounded-xl px-4 py-3`}>
+            <View style={tw`flex-row items-center bg-gray-50 rounded-xl px-4`}>
               <Ionicons name="search" size={20} color="#6B7280" />
               <TextInput
-                style={tw`flex-1 ml-3 text-gray-900`}
+                style={tw`flex-1 ml-3 text-gray-900 py-4`}
                 placeholder="Search by device or date..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -227,7 +220,7 @@ function History() {
           {/* History List */}
           <View style={tw`mb-4`}>
             <View style={tw`flex-row items-center justify-between mb-3`}>
-              <Text style={tw`text-lg font-semibold text-gray-900`}>
+              <Text style={tw`text-sm font-semibold text-gray-900`}>
                 Recent Readings
               </Text>
               <TouchableOpacity

@@ -22,9 +22,9 @@ const fetcher = async (url) => {
 }
 
 export const UserContext = ({ children }) => {
-  const { data, error, isLoading, mutate } = useSWR(ENDPOINT, fetcher);
+  const { data, error, isLoading: userLoading, mutate } = useSWR(ENDPOINT, fetcher);
   return (
-    <UserProvider.Provider value={{ data, error, isLoading, mutate }}>
+    <UserProvider.Provider value={{ data, error, userLoading, mutate }}>
       {children}
     </UserProvider.Provider>
   )

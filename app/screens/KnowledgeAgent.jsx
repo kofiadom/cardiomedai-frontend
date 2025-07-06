@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import {
   Text,
   View,
@@ -60,8 +60,8 @@ function KnowledgeAgent() {
 
     setMessages(prev => [...prev, userMessage]);
     const currentMessage = message;
-    setMessage(""); // Clear input
-    setIsLoading(true); // Start loading
+    setMessage("");
+    setIsLoading(true);
 
     try {
       const res = await fetch(`https://cardiomedai-api.onrender.com/knowledge-agent/ask/${currentMessage}`, {
@@ -72,9 +72,7 @@ function KnowledgeAgent() {
       });
 
       const data = await res.json();
-      console.log('question', data);
 
-      // Add bot response
       const botMessage = {
         id: Date.now() + 1,
         agent_id: data.agent_id,
@@ -86,7 +84,7 @@ function KnowledgeAgent() {
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.log('error occured', error);
-      // Add error message
+
       const errorMessage = {
         id: Date.now() + 2,
         agent_id: null,
@@ -96,7 +94,7 @@ function KnowledgeAgent() {
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   }
 

@@ -22,9 +22,9 @@ const fetcher = async (url) => {
 }
 
 export const BpReaderContext = ({ children }) => {
-  const { data, error, isLoading, mutate } = useSWR(ENDPOINT, fetcher);
+  const { data, error, isLoading: bpReaderLoading, mutate } = useSWR(ENDPOINT, fetcher);
   return (
-    <BpReaderProvider.Provider value={{ data, error, isLoading, mutate }}>
+    <BpReaderProvider.Provider value={{ data, error, bpReaderLoading, mutate }}>
       {children}
     </BpReaderProvider.Provider>
   )

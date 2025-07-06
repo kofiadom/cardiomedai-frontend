@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import {
   Text,
   View,
@@ -29,7 +29,6 @@ function Index() {
   const { data } = useContext(BpReaderProvider)
   const { average } = useContext(AverageBpProvider);
   const { advisor } = useContext(HealthAdvisorProvider);
-
 
   const quickActions = [
     {

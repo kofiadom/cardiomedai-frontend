@@ -13,6 +13,7 @@ import {
 import tw from "twrnc";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import ScreenHeader from "../../components/ScreenHeader";
 
 
@@ -148,9 +149,12 @@ function KnowledgeAgent() {
           {/* Chat Header */}
           <View style={tw`mt-4 mb-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100`}>
             <View style={tw`flex flex-row justify-start items-center`}>
-              <View style={tw`w-10 h-10 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center`}>
+              <LinearGradient
+                colors={['#f87171', '#dc2626']}
+                style={tw`w-10 h-10 rounded-full flex items-center justify-center`}
+              >
                 <Ionicons name="chatbubble-ellipses" size={20} color='white' />
-              </View>
+              </LinearGradient>
               <View style={tw`ml-3 flex-1`}>
                 <Text style={tw`text-lg font-semibold text-gray-800`}>
                   Knowledge Assistant

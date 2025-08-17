@@ -23,8 +23,12 @@ const fetcher = async (url) => {
 
 export const BpReaderContext = ({ children }) => {
   const { data, error, isLoading: bpReaderLoading, mutate } = useSWR(ENDPOINT, fetcher);
+
+  // Ensure data is always an array to prevent undefined errors
+  const safeData = Array.isArray(data) ? data : [];
+
   return (
-    <BpReaderProvider.Provider value={{ data, error, bpReaderLoading, mutate }}>
+    <BpReaderProvider.Provider value={{ data: safeData, error, bpReaderLoading, mutate }}>
       {children}
     </BpReaderProvider.Provider>
   )

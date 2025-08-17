@@ -1,3 +1,4 @@
+import { useState, useContext } from "react";
 import {
   Text,
   View,
@@ -11,20 +12,20 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useState, useContext } from "react";
+import tw from "twrnc";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
-import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import ScreenHeader from "../../components/ScreenHeader";
-import BpReaderProvider from "../../context/bpReadingsContext";
+import RemindersProvider from "../../context/remindersContext";
 
-function UploadBPMonitorImg() {
+function UploadPrescription() {
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-  const { mutate } = useContext(BpReaderProvider);
-
+  
+  const { mutateMedication } = useContext(RemindersProvider) || {};
+  
   const [selectedImage, setSelectedImage] = useState(null);
   const [notes, setNotes] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -33,30 +34,19 @@ function UploadBPMonitorImg() {
 
   const handleImageUpload = async () => {
     try {
-      // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to make this work!');
         return;
       }
 
-      // Show action sheet for camera or gallery
       Alert.alert(
         'Select Image',
         'Choose how you want to select an image',
         [
-          {
-            text: 'Camera',
-            onPress: () => openCamera(),
-          },
-          {
-            text: 'Gallery',
-            onPress: () => openGallery(),
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
+          { text: 'Camera', onPress: () => openCamera() },
+          { text: 'Gallery', onPress: () => openGallery() },
+          { text: 'Cancel', style: 'cancel' },
         ]
       );
     } catch (error) {
@@ -81,9 +71,7 @@ function UploadBPMonitorImg() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        const imageUri = result.assets[0].uri;
-        console.log('Selected camera image URI:', imageUri);
-        setSelectedImage(imageUri);
+        setSelectedImage(result.assets[0].uri);
         setOcrResults(null);
         setShowOcrResults(false);
       }
@@ -103,9 +91,7 @@ function UploadBPMonitorImg() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        const imageUri = result.assets[0].uri;
-        console.log('Selected gallery image URI:', imageUri);
-        setSelectedImage(imageUri);
+        setSelectedImage(result.assets[0].uri);
         setOcrResults(null);
         setShowOcrResults(false);
       }
@@ -115,35 +101,30 @@ function UploadBPMonitorImg() {
     }
   };
 
-  const uploadImageForOCR = async () => {
+  const uploadPrescriptionForOCR = async () => {
     if (!selectedImage) {
       Alert.alert('No Image', 'Please select an image first');
       return;
     }
 
     setIsUploading(true);
-
+    
     try {
-      // Create FormData for file upload
       const formData = new FormData();
-
-      // Add the image file
+      
       formData.append('image', {
         uri: selectedImage,
         type: 'image/jpeg',
-        name: 'bp_monitor.jpg',
+        name: 'prescription.jpg',
       });
-
-      // Add user_id (hardcoded to 1 for now, should come from user context)
+      
       formData.append('user_id', '1');
-
-      // Add notes if provided
+      
       if (notes.trim()) {
         formData.append('notes', notes.trim());
       }
 
-      // Upload to OCR endpoint
-      const response = await fetch('https://cardiomedai-api.onrender.com/bp/upload/', {
+      const response = await fetch('https://cardiomedai-api.onrender.com/reminders/upload-prescription', {
         method: 'POST',
         body: formData,
         headers: {
@@ -154,21 +135,20 @@ function UploadBPMonitorImg() {
       const data = await response.json();
 
       if (response.ok) {
-        // OCR successful, show results for approval
         setOcrResults(data);
         setShowOcrResults(true);
         Alert.alert(
-          'OCR Complete',
-          'Blood pressure values have been extracted from the image. Please review and confirm the values below.',
+          'OCR Complete', 
+          `Found ${data.total_reminders} medication reminders. Please review and confirm the extracted information.`,
           [{ text: 'OK' }]
         );
       } else {
         console.error('OCR upload failed:', data);
-        Alert.alert('Upload Failed', data.detail || 'Failed to process the image. Please try again.');
+        Alert.alert('Upload Failed', data.detail || 'Failed to process the prescription image. Please try again.');
       }
     } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Upload Error', 'Failed to upload image. Please check your internet connection and try again.');
+      console.error('Error uploading prescription:', error);
+      Alert.alert('Upload Error', 'Failed to upload prescription. Please check your internet connection and try again.');
     } finally {
       setIsUploading(false);
     }
@@ -176,23 +156,19 @@ function UploadBPMonitorImg() {
 
   const handleApproveOCR = async () => {
     if (!ocrResults) return;
-
+    
     setIsUploading(true);
-
+    
     try {
-      const response = await fetch('https://cardiomedai-api.onrender.com/bp/save-ocr/', {
+      const response = await fetch('https://cardiomedai-api.onrender.com/reminders/save-ocr-reminders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: 1, // Should come from user context
-          systolic: ocrResults.systolic,
-          diastolic: ocrResults.diastolic,
-          pulse: ocrResults.pulse,
+          user_id: 1,
+          extracted_data: ocrResults.extracted_data,
           notes: notes.trim() || null,
-          device_id: ocrResults.device_id || null,
-          interpretation: ocrResults.interpretation || null,
         }),
       });
 
@@ -200,88 +176,78 @@ function UploadBPMonitorImg() {
 
       if (response.ok) {
         Alert.alert(
-          'Success',
-          'Blood pressure reading saved successfully!',
+          'Success', 
+          `${ocrResults.total_reminders} medication reminders created successfully!`,
           [
             {
               text: 'OK',
               onPress: () => {
-                // Reset form
-                setSelectedImage(null);
-                setNotes('');
-                setOcrResults(null);
-                setShowOcrResults(false);
-                // Refresh BP readings data
-                mutate();
-                // Navigate back to home
-                router.push('/');
+                mutateMedication(); // Refresh medication data
+                router.back();
               }
             }
           ]
         );
       } else {
         console.error('Save OCR failed:', data);
-        Alert.alert('Save Failed', data.detail || 'Failed to save the reading. Please try again.');
+        Alert.alert('Save Failed', data.detail || 'Failed to save the reminders. Please try again.');
       }
     } catch (error) {
       console.error('Error saving OCR data:', error);
-      Alert.alert('Save Error', 'Failed to save reading. Please check your internet connection and try again.');
+      Alert.alert('Save Error', 'Failed to save reminders. Please check your internet connection and try again.');
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleEditOCR = () => {
-    // For now, just hide OCR results to allow re-upload
     setShowOcrResults(false);
     setOcrResults(null);
-    Alert.alert('Edit Values', 'Please upload a new image or use manual entry to correct the values.');
+    Alert.alert('Edit Values', 'Please upload a new prescription image or add reminders manually.');
   };
 
-  const handleSave = () => {
-    if (!selectedImage) {
-      Alert.alert('No Image', 'Please select an image first');
-      return;
-    }
-    uploadImageForOCR();
-  };
-
-  // OCR Results Component
   const OCRResultsSection = ({ ocrResults, onApprove, onEdit }) => (
     <View style={tw`bg-white rounded-3xl p-6 border border-[#e2e8f0] mb-5`}>
       <View style={tw`flex-row items-center mb-4`}>
         <Ionicons name="scan" size={24} color="#10b981" />
         <Text style={tw`text-lg font-semibold text-gray-800 ml-2`}>
-          Extracted Values
+          Extracted Medication Information
         </Text>
       </View>
 
       <View style={tw`bg-green-50 rounded-2xl p-4 mb-4`}>
         <Text style={tw`text-green-800 text-sm mb-3 font-medium`}>
-          The following values were detected from your image:
+          Found {ocrResults.total_reminders} medication reminders:
         </Text>
-
-        <View style={tw`flex-row justify-between items-center mb-2`}>
-          <Text style={tw`text-gray-600 font-medium`}>Systolic:</Text>
-          <Text style={tw`text-gray-800 font-bold text-lg`}>{ocrResults.systolic} mmHg</Text>
-        </View>
-
-        <View style={tw`flex-row justify-between items-center mb-2`}>
-          <Text style={tw`text-gray-600 font-medium`}>Diastolic:</Text>
-          <Text style={tw`text-gray-800 font-bold text-lg`}>{ocrResults.diastolic} mmHg</Text>
-        </View>
-
-        {ocrResults.pulse && (
-          <View style={tw`flex-row justify-between items-center mb-2`}>
-            <Text style={tw`text-gray-600 font-medium`}>Pulse:</Text>
-            <Text style={tw`text-gray-800 font-bold text-lg`}>{ocrResults.pulse} bpm</Text>
+        
+        <Text style={tw`text-gray-800 font-bold text-lg mb-2`}>
+          {ocrResults.extracted_data.name}
+        </Text>
+        
+        <Text style={tw`text-gray-600 mb-2`}>
+          Dosage: {ocrResults.extracted_data.dosage}
+        </Text>
+        
+        {ocrResults.extracted_data.schedule && ocrResults.extracted_data.schedule.length > 0 && (
+          <View style={tw`mt-3`}>
+            <Text style={tw`text-gray-700 font-medium mb-2`}>Schedule:</Text>
+            {ocrResults.extracted_data.schedule.map((schedule, index) => (
+              <View key={index} style={tw`flex-row justify-between items-center mb-1`}>
+                <Text style={tw`text-gray-600`}>
+                  {new Date(schedule.datetime).toLocaleString()}
+                </Text>
+                <Text style={tw`text-gray-800 font-medium`}>
+                  {schedule.dosage}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
-
-        {ocrResults.interpretation && (
+        
+        {ocrResults.extracted_data.interpretation && (
           <View style={tw`mt-3 pt-3 border-t border-green-200`}>
-            <Text style={tw`text-green-700 text-sm font-medium mb-1`}>Interpretation:</Text>
-            <Text style={tw`text-green-800 text-sm`}>{ocrResults.interpretation}</Text>
+            <Text style={tw`text-green-700 text-sm font-medium mb-1`}>AI Interpretation:</Text>
+            <Text style={tw`text-green-800 text-sm`}>{ocrResults.extracted_data.interpretation}</Text>
           </View>
         )}
       </View>
@@ -297,7 +263,7 @@ function UploadBPMonitorImg() {
             <Text style={tw`text-white font-semibold ml-2`}>Approve & Save</Text>
           </View>
         </TouchableOpacity>
-
+        
         <TouchableOpacity
           style={tw`flex-1 border border-gray-300 rounded-2xl py-3 items-center`}
           onPress={onEdit}
@@ -322,16 +288,34 @@ function UploadBPMonitorImg() {
         <ScreenHeader />
 
         <ScrollView style={tw`mt-5`} showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={tw`mb-6`}>
+            <TouchableOpacity
+              style={tw`flex-row items-center mb-4`}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#374151" />
+              <Text style={tw`text-lg font-semibold text-gray-700 ml-2`}>
+                Back to Reminders
+              </Text>
+            </TouchableOpacity>
+            
+            <Text style={tw`text-2xl font-bold text-gray-900 mb-2`}>
+              Upload Prescription
+            </Text>
+            <Text style={tw`text-gray-600`}>
+              Take a photo of your prescription to automatically create medication reminders
+            </Text>
+          </View>
+
           {/* Image Upload Section */}
-          <View
-            style={tw`bg-white rounded-3xl p-6 border border-[#e2e8f0] mb-5`}
-          >
+          <View style={tw`bg-white rounded-3xl p-6 border border-[#e2e8f0] mb-5`}>
             <Text style={tw`text-lg font-semibold text-gray-800 mb-4`}>
-              Blood Pressure Reading
+              Prescription Image
             </Text>
 
             <TouchableOpacity
-              style={tw`border-2 border-dashed border-blue-300 rounded-2xl p-8 items-center justify-center bg-blue-50 min-h-48`}
+              style={tw`border-2 border-dashed border-green-300 rounded-2xl p-8 items-center justify-center bg-green-50 min-h-48`}
               onPress={handleImageUpload}
               activeOpacity={0.7}
             >
@@ -341,14 +325,9 @@ function UploadBPMonitorImg() {
                     source={{ uri: selectedImage }}
                     style={[tw`rounded-xl mb-3`, { width: '100%', height: 160 }]}
                     resizeMode="cover"
-                    onError={(error) => {
-                      console.error('Image load error:', error);
-                      Alert.alert('Image Error', 'Failed to load the selected image');
-                    }}
-                    onLoad={() => console.log('Image loaded successfully')}
                   />
                   <TouchableOpacity
-                    style={tw`flex-row items-center bg-blue-600 px-4 py-2 rounded-full`}
+                    style={tw`flex-row items-center bg-green-600 px-4 py-2 rounded-full`}
                     onPress={handleImageUpload}
                   >
                     <Ionicons name="camera" size={16} color="white" />
@@ -359,18 +338,17 @@ function UploadBPMonitorImg() {
                 </View>
               ) : (
                 <View style={tw`items-center`}>
-                  <View style={tw`bg-blue-100 rounded-full p-4 mb-4`}>
-                    <Ionicons name="camera" size={32} color="#3b82f6" />
+                  <View style={tw`bg-green-100 rounded-full p-4 mb-4`}>
+                    <Ionicons name="camera" size={32} color="#10b981" />
                   </View>
-                  <Text style={tw`text-blue-600 font-semibold text-base mb-2`}>
-                    Upload Monitor Image
+                  <Text style={tw`text-green-600 font-semibold text-base mb-2`}>
+                    Upload Prescription Image
                   </Text>
                   <Text style={tw`text-gray-500 text-sm text-center leading-5`}>
-                    Take a photo of your blood pressure monitor or select from
-                    gallery
+                    Take a photo of your prescription or select from gallery
                   </Text>
                   <View style={tw`flex-row mt-4`}>
-                    <View style={tw`bg-blue-600 px-4 py-2 rounded-full`}>
+                    <View style={tw`bg-green-600 px-4 py-2 rounded-full`}>
                       <Text style={tw`text-white text-sm font-medium`}>
                         Choose Image
                       </Text>
@@ -382,16 +360,14 @@ function UploadBPMonitorImg() {
           </View>
 
           {/* Notes Section */}
-          <View
-            style={tw`bg-white rounded-3xl p-6 border border-[#e2e8f0] mb-5`}
-          >
+          <View style={tw`bg-white rounded-3xl p-6 border border-[#e2e8f0] mb-5`}>
             <Text style={tw`text-lg font-semibold text-gray-800 mb-4`}>
               Additional Notes
             </Text>
 
             <TextInput
               style={tw`border border-gray-200 rounded-2xl p-4 text-gray-700 text-base min-h-32 bg-gray-50`}
-              placeholder="Add any additional notes about your blood pressure reading..."
+              placeholder="Add any additional notes about this prescription..."
               placeholderTextColor="#9ca3af"
               multiline={true}
               textAlignVertical="top"
@@ -405,11 +381,7 @@ function UploadBPMonitorImg() {
                 {notes.length}/500 characters
               </Text>
               <View style={tw`flex-row items-center`}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={16}
-                  color="#9ca3af"
-                />
+                <Ionicons name="information-circle-outline" size={16} color="#9ca3af" />
                 <Text style={tw`text-gray-400 text-xs ml-1`}>Optional</Text>
               </View>
             </View>
@@ -417,7 +389,7 @@ function UploadBPMonitorImg() {
 
           {/* OCR Results Section */}
           {showOcrResults && ocrResults && (
-            <OCRResultsSection
+            <OCRResultsSection 
               ocrResults={ocrResults}
               onApprove={handleApproveOCR}
               onEdit={handleEditOCR}
@@ -428,8 +400,8 @@ function UploadBPMonitorImg() {
           {!showOcrResults && (
             <View style={tw`mb-8`}>
               <TouchableOpacity
-                style={tw`${isUploading ? 'bg-blue-400' : 'bg-blue-600'} rounded-2xl py-4 items-center mb-3 shadow-sm`}
-                onPress={handleSave}
+                style={tw`${isUploading ? 'bg-green-400' : 'bg-green-600'} rounded-2xl py-4 items-center mb-3 shadow-sm`}
+                onPress={uploadPrescriptionForOCR}
                 activeOpacity={0.8}
                 disabled={isUploading || !selectedImage}
               >
@@ -440,7 +412,7 @@ function UploadBPMonitorImg() {
                     <Ionicons name="scan" size={20} color="white" />
                   )}
                   <Text style={tw`text-white font-semibold text-base ml-2`}>
-                    {isUploading ? 'Processing Image...' : 'Process Image'}
+                    {isUploading ? 'Processing Prescription...' : 'Process Prescription'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -448,41 +420,36 @@ function UploadBPMonitorImg() {
               <TouchableOpacity
                 style={tw`border border-gray-300 rounded-2xl py-4 items-center`}
                 activeOpacity={0.7}
-                onPress={() => {
-                  setSelectedImage(null);
-                  setNotes('');
-                  setOcrResults(null);
-                  setShowOcrResults(false);
-                }}
+                onPress={() => router.back()}
               >
                 <Text style={tw`text-gray-600 font-medium text-base`}>
-                  Clear
+                  Cancel
                 </Text>
               </TouchableOpacity>
             </View>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
 
-      {/* Loading Overlay */}
-      {isUploading && (
-        <View style={tw`absolute inset-0 bg-black bg-opacity-50 justify-center items-center`}>
-          <View style={tw`bg-white rounded-3xl p-8 items-center mx-8`}>
-            <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={tw`text-gray-800 font-semibold text-lg mt-4 mb-2`}>
-              {showOcrResults ? 'Saving Reading...' : 'Processing Image...'}
-            </Text>
-            <Text style={tw`text-gray-600 text-center text-sm`}>
-              {showOcrResults
-                ? 'Please wait while we save your blood pressure reading.'
-                : 'Please wait while we extract blood pressure values from your image.'
-              }
-            </Text>
+        {/* Loading Overlay */}
+        {isUploading && (
+          <View style={tw`absolute inset-0 bg-black bg-opacity-50 justify-center items-center`}>
+            <View style={tw`bg-white rounded-3xl p-8 items-center mx-8`}>
+              <ActivityIndicator size="large" color="#10b981" />
+              <Text style={tw`text-gray-800 font-semibold text-lg mt-4 mb-2`}>
+                {showOcrResults ? 'Saving Reminders...' : 'Processing Prescription...'}
+              </Text>
+              <Text style={tw`text-gray-600 text-center text-sm`}>
+                {showOcrResults 
+                  ? 'Please wait while we save your medication reminders.'
+                  : 'Please wait while we extract medication information from your prescription.'
+                }
+              </Text>
+            </View>
           </View>
-        </View>
-      )}
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-export default UploadBPMonitorImg;
+export default UploadPrescription;

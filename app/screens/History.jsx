@@ -9,7 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView
 } from "react-native";
-import { useState, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { StatusBar } from "expo-status-bar";
 import tw from "twrnc";
 import { truncate } from "cod-string-magic";
@@ -20,17 +20,26 @@ import BpReaderProvider from "../../context/bpReadingsContext";
 function History() {
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-  const { data } = useContext(BpReaderProvider);
+  const { data = [] } = useContext(BpReaderProvider) || {};
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredData = data.filter(item => {
-    const matchesSearch = searchQuery === '' ||
-      (item.device_id && item.device_id.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      item.reading_time.includes(searchQuery) ||
-      (item.notes && item.notes.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch;
-  });
+  const filteredData = React.useMemo(() => {
+    try {
+      const safeData = Array.isArray(data) ? data : [];
+      return safeData.filter(item => {
+        if (!item) return false;
+        const matchesSearch = searchQuery === '' ||
+          (item.device_id && item.device_id.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (item.reading_time && item.reading_time.includes(searchQuery)) ||
+          (item.notes && item.notes.toLowerCase().includes(searchQuery.toLowerCase()));
+        return matchesSearch;
+      });
+    } catch (error) {
+      console.error('[History] Error filtering data:', error);
+      return [];
+    }
+  }, [data, searchQuery]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -57,17 +66,19 @@ function History() {
     }
   };
 
-  const renderHistoryItem = (item) => {
+  const renderHistoryItem = (item, index) => {
+    if (!item) return null;
+
     // Parse the reading time
-    const readingDate = new Date(item.reading_time);
+    const readingDate = new Date(item.reading_time || new Date());
     const formattedDate = readingDate.toLocaleDateString();
     const formattedTime = readingDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const status = getStatusFromInterpretation(item.interpretation);
+    const status = getStatusFromInterpretation(item.interpretation || '');
 
     return (
       <TouchableOpacity
-        key={item.id}
+        key={item.id || `history-item-${index}`}
         style={tw`bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100`}
         onPress={() => {
           Alert.alert(
@@ -92,7 +103,7 @@ function History() {
                   Blood Pressure
                 </Text>
                 <Text style={tw`text-xs text-gray-500`}>
-                  {truncate(item.device_id, 28) || 'Manual Entry'}
+                  {item.device_id ? truncate(item.device_id, 28) : 'Manual Entry'}
                 </Text>
               </View>
               <View style={[tw`px-2 py-1 rounded-full`, tw`${getStatusBg(status)}`]}>
@@ -104,7 +115,7 @@ function History() {
 
             {/* Reading Values */}
             <View style={tw`mb-3`}>
-              <View style={tw`flex-row items-center space-x-4`}>
+              <View style={tw`flex-row items-center`}>
                 <View>
                   <Text style={tw`text-base font-bold text-gray-900`}>
                     {item.systolic}/{item.diastolic}mmHg - {item.pulse}BPM
@@ -184,7 +195,7 @@ function History() {
             <View style={tw`flex-row justify-between`}>
               <View style={tw`items-center`}>
                 <Text style={tw`text-2xl font-bold text-blue-600`}>
-                  {data?.length || 0}
+                  {Array.isArray(data) ? data.length : 0}
                 </Text>
                 <Text style={tw`text-sm text-gray-500`}>
                   Total Records
@@ -192,7 +203,7 @@ function History() {
               </View>
               <View style={tw`items-center`}>
                 <Text style={tw`text-2xl font-bold text-green-600`}>
-                  {filteredData.filter(item => getStatusFromInterpretation(item.interpretation) === 'normal').length}
+                  {Array.isArray(filteredData) ? filteredData.filter(item => item && getStatusFromInterpretation(item.interpretation) === 'normal').length : 0}
                 </Text>
                 <Text style={tw`text-sm text-gray-500`}>
                   Normal
@@ -200,7 +211,7 @@ function History() {
               </View>
               <View style={tw`items-center`}>
                 <Text style={tw`text-2xl font-bold text-yellow-600`}>
-                  {filteredData.filter(item => getStatusFromInterpretation(item.interpretation) === 'elevated').length}
+                  {Array.isArray(filteredData) ? filteredData.filter(item => item && getStatusFromInterpretation(item.interpretation) === 'elevated').length : 0}
                 </Text>
                 <Text style={tw`text-sm text-gray-500`}>
                   Elevated
@@ -208,7 +219,7 @@ function History() {
               </View>
               <View style={tw`items-center`}>
                 <Text style={tw`text-2xl font-bold text-red-600`}>
-                  {filteredData.filter(item => getStatusFromInterpretation(item.interpretation) === 'high').length}
+                  {Array.isArray(filteredData) ? filteredData.filter(item => item && getStatusFromInterpretation(item.interpretation) === 'high').length : 0}
                 </Text>
                 <Text style={tw`text-sm text-gray-500`}>
                   High
@@ -230,8 +241,8 @@ function History() {
               </TouchableOpacity>
             </View>
 
-            {data.length > 0 ? (
-              data.map(renderHistoryItem)
+            {Array.isArray(filteredData) && filteredData.length > 0 ? (
+              filteredData.map((item, index) => renderHistoryItem(item, index))
             ) : (
               <View style={tw`bg-white rounded-2xl p-8 items-center shadow-sm border border-gray-100`}>
                 <View style={tw`bg-gray-100 p-4 rounded-full mb-4`}>

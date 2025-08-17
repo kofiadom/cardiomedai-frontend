@@ -14,48 +14,63 @@ import OfflineBanner from '../components/OfflineBanner';
 
 export default function RootLayout() {
   useEffect(() => {
+    let isInitializing = false;
+    
     // Initialize all services when app starts
     const initializeServices = async () => {
+      if (isInitializing) return;
+      isInitializing = true;
+      
       try {
         console.log('🚀 Initializing CardioMedAI services...');
 
         // 1. Initialize database first
         console.log('📊 Initializing local database...');
+        let databaseInitialized = false;
         try {
           await databaseService.initialize();
+          databaseInitialized = true;
           
           // Reset database to ensure clean schema (development only)
           if (__DEV__) {
             console.log('🔄 Resetting database for clean schema...');
             await databaseService.resetDatabase();
+            
+            // Wait longer for database to be fully ready after reset
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
           
           console.log('✅ Database initialized');
         } catch (dbError) {
           console.error('❌ Database initialization failed:', dbError.message);
           console.log('📱 App will continue with API-only mode');
+          databaseInitialized = false;
         }
 
-        // 2. Initialize sync service
-        console.log('🔄 Initializing sync service...');
-        try {
-          // Sync service initializes automatically via constructor
-          console.log('✅ Sync service initialized');
-        } catch (syncError) {
-          console.error('❌ Sync service initialization failed:', syncError.message);
+        // 2. Initialize sync service (only if database is available)
+        if (databaseInitialized) {
+          console.log('🔄 Initializing sync service...');
+          try {
+            // Sync service initializes automatically via constructor
+            console.log('✅ Sync service initialized');
+          } catch (syncError) {
+            console.error('❌ Sync service initialization failed:', syncError.message);
+          }
         }
 
         // 3. Initialize background sync (skip in Expo Go)
-        console.log('⏰ Initializing background sync...');
-        try {
-          const backgroundSyncAvailable = await backgroundSyncService.initialize();
-          if (backgroundSyncAvailable) {
-            console.log('✅ Background sync enabled');
-          } else {
-            console.warn('⚠️ Background sync not available (Expo Go limitation)');
+        if (databaseInitialized) {
+          console.log('⏰ Initializing background sync...');
+          try {
+            const backgroundSyncAvailable = await backgroundSyncService.initialize();
+            if (backgroundSyncAvailable) {
+              console.log('✅ Background sync enabled');
+            } else {
+              console.warn('⚠️ Background sync not available (Expo Go limitation)');
+            }
+          } catch (bgError) {
+            console.warn('⚠️ Background sync failed to initialize:', bgError.message);
           }
-        } catch (bgError) {
-          console.warn('⚠️ Background sync failed to initialize:', bgError.message);
         }
 
         // 4. Initialize notifications
@@ -73,9 +88,12 @@ export default function RootLayout() {
         }
 
         // 5. Perform initial sync if online (only if database is available)
-        if (databaseService.isInitialized) {
+        if (databaseInitialized && databaseService.isInitialized) {
           console.log('🌐 Checking connectivity and performing initial sync...');
           try {
+            // Wait a bit more to ensure database is fully ready
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             const syncStatus = syncService.getSyncStatus();
             if (syncStatus.isOnline) {
               await syncService.syncAll();
@@ -95,6 +113,8 @@ export default function RootLayout() {
       } catch (error) {
         console.error('❌ Critical service initialization failed:', error);
         console.log('📱 App will continue with basic functionality');
+      } finally {
+        isInitializing = false;
       }
     };
 

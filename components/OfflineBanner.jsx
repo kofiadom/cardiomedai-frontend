@@ -116,7 +116,7 @@ const OfflineBanner = ({
             </Text>
             {showPendingCount && pendingChanges > 0 && (
               <Text style={tw`text-red-100 text-xs mt-1`}>
-                {pendingChanges} change{pendingChanges !== 1 ? 's' : ''} will sync when online
+                {`${pendingChanges} change${pendingChanges !== 1 ? 's' : ''} will sync when online`}
               </Text>
             )}
           </View>

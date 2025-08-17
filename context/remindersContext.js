@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import remindersRepository from "../repositories/RemindersRepository";
 import syncService from "../services/syncService";
+import databaseService from "../services/databaseService";
 import NotificationService from "../services/notificationService";
 
 const RemindersProvider = createContext();
@@ -241,6 +242,17 @@ export const RemindersContext = ({ children }) => {
   // Create reminder functions using repository
   const createMedicationReminder = async (reminderData) => {
     try {
+      // Check if database is available
+      if (!databaseService.isInitialized) {
+        console.warn('[RemindersContext] Database not initialized, attempting to initialize...');
+        try {
+          await databaseService.initialize();
+        } catch (initError) {
+          console.error('[RemindersContext] Database initialization failed:', initError);
+          throw new Error('Database not available. Please try again.');
+        }
+      }
+
       const newReminder = await remindersRepository.createMedicationReminder(USER_ID, reminderData);
       
       // Schedule notification
@@ -260,6 +272,17 @@ export const RemindersContext = ({ children }) => {
 
   const createBPReminder = async (reminderData) => {
     try {
+      // Check if database is available
+      if (!databaseService.isInitialized) {
+        console.warn('[RemindersContext] Database not initialized, attempting to initialize...');
+        try {
+          await databaseService.initialize();
+        } catch (initError) {
+          console.error('[RemindersContext] Database initialization failed:', initError);
+          throw new Error('Database not available. Please try again.');
+        }
+      }
+
       const newReminder = await remindersRepository.createBPReminder(USER_ID, reminderData);
       
       // Schedule notification

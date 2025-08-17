@@ -21,7 +21,8 @@ class RemindersRepository extends BaseRepository {
         is_taken: 0
       };
 
-      return await this.create(data, userId);
+      // Ensure we're using the correct table for medication reminders
+      return await this.createInTable('medication_reminders', data, userId);
     } catch (error) {
       console.error('[RemindersRepository] CreateMedicationReminder failed:', error);
       throw error;
@@ -245,10 +246,16 @@ class RemindersRepository extends BaseRepository {
   // Mark medication as taken
   async markMedicationTaken(reminderId) {
     try {
-      return await this.update(reminderId, {
-        is_taken: 1,
-        taken_at: new Date().toISOString()
-      });
+      const originalTableName = this.tableName;
+      this.tableName = 'medication_reminders';
+      try {
+        return await this.update(reminderId, {
+          is_taken: 1,
+          taken_at: new Date().toISOString()
+        });
+      } finally {
+        this.tableName = originalTableName;
+      }
     } catch (error) {
       console.error('[RemindersRepository] MarkMedicationTaken failed:', error);
       throw error;
@@ -315,7 +322,13 @@ class RemindersRepository extends BaseRepository {
   // Delete medication reminder
   async deleteMedicationReminder(reminderId) {
     try {
-      return await this.delete(reminderId);
+      const originalTableName = this.tableName;
+      this.tableName = 'medication_reminders';
+      try {
+        return await this.delete(reminderId);
+      } finally {
+        this.tableName = originalTableName;
+      }
     } catch (error) {
       console.error('[RemindersRepository] DeleteMedicationReminder failed:', error);
       throw error;

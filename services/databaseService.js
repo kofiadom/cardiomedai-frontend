@@ -4,19 +4,38 @@ class DatabaseService {
   constructor() {
     this.db = null;
     this.isInitialized = false;
+    this.isInitializing = false;
+    this.isResetting = false;
+    this.initializationPromise = null;
   }
 
   async initialize() {
-    if (this.isInitialized) return;
+    if (this.isInitialized && this.db) return;
+    
+    // Prevent multiple simultaneous initializations
+    if (this.isInitializing) {
+      // Wait for current initialization to complete
+      while (this.isInitializing) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return;
+    }
 
+    this.isInitializing = true;
+    
     try {
+      console.log('[DatabaseService] Initializing database...');
       this.db = await SQLite.openDatabaseAsync('cardiomedai.db');
       await this.createTables();
       this.isInitialized = true;
       console.log('[DatabaseService] Database initialized successfully');
     } catch (error) {
       console.error('[DatabaseService] Failed to initialize database:', error);
+      this.isInitialized = false;
+      this.db = null;
       throw error;
+    } finally {
+      this.isInitializing = false;
     }
   }
 
@@ -284,78 +303,100 @@ class DatabaseService {
   }
 
   async getDatabase() {
-    if (!this.isInitialized) {
+    // If currently resetting, wait for it to complete
+    if (this.isResetting) {
+      while (this.isResetting) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    if (!this.isInitialized || !this.db) {
       await this.initialize();
     }
+    
+    if (!this.db) {
+      throw new Error('Database connection failed to initialize');
+    }
+    
     return this.db;
   }
 
   // Generic CRUD operations with sync metadata
   async insert(tableName, data, markDirty = true) {
-    const db = await this.getDatabase();
-    
-    // Add sync metadata
-    const insertData = {
-      ...data,
-      is_dirty: markDirty ? 1 : 0,
-      sync_status: markDirty ? 'pending' : 'synced',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    try {
+      const db = await this.getDatabase();
+      
+      // Add sync metadata
+      const insertData = {
+        ...data,
+        is_dirty: markDirty ? 1 : 0,
+        sync_status: markDirty ? 'pending' : 'synced',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-    const columns = Object.keys(insertData);
-    const placeholders = columns.map(() => '?').join(', ');
-    const values = Object.values(insertData);
+      const columns = Object.keys(insertData);
+      const placeholders = columns.map(() => '?').join(', ');
+      const values = Object.values(insertData);
 
-    const result = await db.runAsync(
-      `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`,
-      values
-    );
+      const result = await db.runAsync(
+        `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`,
+        values
+      );
 
-    // Add to sync queue if marked dirty
-    if (markDirty) {
-      await this.addToSyncQueue(tableName, result.lastInsertRowId, 'INSERT', insertData);
+      // Add to sync queue if marked dirty
+      if (markDirty) {
+        await this.addToSyncQueue(tableName, result.lastInsertRowId, 'INSERT', insertData);
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`[DatabaseService] Insert failed for table ${tableName}:`, error);
+      throw error;
     }
-
-    return result;
   }
 
   async update(tableName, id, data, markDirty = true) {
-    const db = await this.getDatabase();
-    
-    // Add sync metadata
-    const updateData = {
-      ...data,
-      is_dirty: markDirty ? 1 : 0,
-      sync_status: markDirty ? 'pending' : 'synced',
-      updated_at: new Date().toISOString()
-    };
+    try {
+      const db = await this.getDatabase();
+      
+      // Add sync metadata
+      const updateData = {
+        ...data,
+        is_dirty: markDirty ? 1 : 0,
+        sync_status: markDirty ? 'pending' : 'synced',
+        updated_at: new Date().toISOString()
+      };
 
-    if (markDirty) {
-      updateData.version = `version + 1`;
+      if (markDirty) {
+        updateData.version = `version + 1`;
+      }
+
+      const columns = Object.keys(updateData);
+      const setClause = columns.map(col =>
+        col === 'version' ? `${col} = ${updateData[col]}` : `${col} = ?`
+      ).join(', ');
+      
+      const values = Object.values(updateData).filter((_, index) =>
+        columns[index] !== 'version'
+      );
+      values.push(id);
+
+      const result = await db.runAsync(
+        `UPDATE ${tableName} SET ${setClause} WHERE id = ?`,
+        values
+      );
+
+      // Add to sync queue if marked dirty
+      if (markDirty) {
+        await this.addToSyncQueue(tableName, id, 'UPDATE', updateData);
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`[DatabaseService] Update failed for table ${tableName}:`, error);
+      throw error;
     }
-
-    const columns = Object.keys(updateData);
-    const setClause = columns.map(col => 
-      col === 'version' ? `${col} = ${updateData[col]}` : `${col} = ?`
-    ).join(', ');
-    
-    const values = Object.values(updateData).filter((_, index) => 
-      columns[index] !== 'version'
-    );
-    values.push(id);
-
-    const result = await db.runAsync(
-      `UPDATE ${tableName} SET ${setClause} WHERE id = ?`,
-      values
-    );
-
-    // Add to sync queue if marked dirty
-    if (markDirty) {
-      await this.addToSyncQueue(tableName, id, 'UPDATE', updateData);
-    }
-
-    return result;
   }
 
   async delete(tableName, id, softDelete = true) {
@@ -540,26 +581,49 @@ class DatabaseService {
   // Reset database (for development/testing)
   async resetDatabase() {
     try {
-      const db = await this.getDatabase();
-      
-      // List of all tables to drop
-      const tablesToDrop = [
-        'users', 'bp_readings', 'medication_reminders', 'bp_reminders',
-        'doctor_reminders', 'workout_reminders', 'health_advisor_conversations',
-        'knowledge_agent_qa', 'sync_metadata', 'sync_queue'
-      ];
-
       console.log('[DatabaseService] Resetting database...');
       
-      for (const tableName of tablesToDrop) {
-        try {
-          await db.execAsync(`DROP TABLE IF EXISTS ${tableName}`);
-          console.log(`[DatabaseService] Dropped table: ${tableName}`);
-        } catch (error) {
-          console.log(`[DatabaseService] Failed to drop table ${tableName}:`, error.message);
+      // Don't reset if already in progress
+      if (this.isResetting) {
+        console.log('[DatabaseService] Reset already in progress, waiting...');
+        while (this.isResetting) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
+        return true;
+      }
+      
+      this.isResetting = true;
+      
+      // Wait a moment to let any pending operations complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // If database exists, drop tables without closing connection
+      if (this.db && this.isInitialized) {
+        // List of all tables to drop (order matters for foreign keys)
+        const tablesToDrop = [
+          'sync_queue', 'sync_metadata', 'knowledge_agent_qa', 'health_advisor_conversations',
+          'workout_reminders', 'doctor_reminders', 'bp_reminders', 'medication_reminders',
+          'bp_readings', 'users'
+        ];
+
+        for (const tableName of tablesToDrop) {
+          try {
+            // Add a small delay between drops to prevent locking
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await this.db.execAsync(`DROP TABLE IF EXISTS ${tableName}`);
+            console.log(`[DatabaseService] Dropped table: ${tableName}`);
+          } catch (error) {
+            console.log(`[DatabaseService] Failed to drop table ${tableName}:`, error.message);
+          }
+        }
+      } else {
+        // Initialize if not already done
+        await this.initialize();
       }
 
+      // Wait before recreating tables
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       // Recreate all tables
       await this.createTables();
       
@@ -568,6 +632,8 @@ class DatabaseService {
     } catch (error) {
       console.error('[DatabaseService] Database reset failed:', error);
       return false;
+    } finally {
+      this.isResetting = false;
     }
   }
 }

@@ -68,6 +68,12 @@ class SyncService {
       return;
     }
 
+    // Check if database is available
+    if (!databaseService.isInitialized) {
+      console.log('[SyncService] Database not initialized - skipping sync');
+      return;
+    }
+
     this.isSyncing = true;
     this.notifyListeners('syncStarted', {});
 
@@ -266,16 +272,38 @@ class SyncService {
       let url = `${this.baseUrl}${endpoint}`;
       let method = 'POST';
 
-      // If record has server ID, it's an update
-      if (record.id && record.sync_status !== 'pending_insert') {
-        url += `/${record.id}`;
+      // Determine if this is a new record or an update
+      // Only update if the record has been synced before (has last_synced_at)
+      if (record.id && record.last_synced_at && record.sync_status !== 'pending_insert') {
         method = 'PUT';
+        
+        // Special handling for different reminder types
+        switch (tableName) {
+          case 'medication_reminders':
+            url = `${this.baseUrl}/reminders/reminder/${record.id}`;
+            break;
+          case 'bp_reminders':
+            url = `${this.baseUrl}/reminders/bp-reminder/${record.id}`;
+            break;
+          case 'doctor_reminders':
+            url = `${this.baseUrl}/reminders/doctor-appointment/${record.id}`;
+            break;
+          case 'workout_reminders':
+            url = `${this.baseUrl}/reminders/workout/${record.id}`;
+            break;
+          default:
+            // Remove trailing slash if present, then add record ID
+            const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+            url = `${this.baseUrl}${cleanEndpoint}/${record.id}`;
+        }
       }
 
-      // Add user_id as query parameter if needed
-      if (tableName !== 'users' && cleanRecord.user_id) {
+      // Add user_id as query parameter if needed for POST requests
+      if (method === 'POST' && tableName !== 'users' && cleanRecord.user_id) {
         url += `?user_id=${cleanRecord.user_id}`;
       }
+
+      console.log(`[SyncService] Pushing ${method} to: ${url}`);
 
       const response = await fetch(url, {
         method,
@@ -310,28 +338,39 @@ class SyncService {
 
   // Merge server record with local data
   async mergeServerRecord(tableName, serverRecord) {
-    const existingRecord = await databaseService.findById(tableName, serverRecord.id);
-    
-    if (!existingRecord) {
-      // New record from server
-      await databaseService.insert(tableName, {
-        ...serverRecord,
-        last_synced_at: new Date().toISOString()
-      }, false); // Don't mark as dirty
-    } else {
-      // Check for conflicts
-      if (existingRecord.is_dirty && existingRecord.version !== serverRecord.version) {
-        // Conflict detected
-        const resolution = await this.resolveConflict(tableName, existingRecord, serverRecord);
-        await databaseService.update(tableName, existingRecord.id, resolution, false);
-      } else if (!existingRecord.is_dirty) {
-        // No local changes, safe to update
-        await databaseService.update(tableName, existingRecord.id, {
+    try {
+      // Check if database is available
+      if (!databaseService.isInitialized) {
+        console.warn('[SyncService] Database not initialized, skipping merge');
+        return;
+      }
+
+      const existingRecord = await databaseService.findById(tableName, serverRecord.id);
+      
+      if (!existingRecord) {
+        // New record from server
+        await databaseService.insert(tableName, {
           ...serverRecord,
           last_synced_at: new Date().toISOString()
-        }, false);
+        }, false); // Don't mark as dirty
+      } else {
+        // Check for conflicts
+        if (existingRecord.is_dirty && existingRecord.version !== serverRecord.version) {
+          // Conflict detected
+          const resolution = await this.resolveConflict(tableName, existingRecord, serverRecord);
+          await databaseService.update(tableName, existingRecord.id, resolution, false);
+        } else if (!existingRecord.is_dirty) {
+          // No local changes, safe to update
+          await databaseService.update(tableName, existingRecord.id, {
+            ...serverRecord,
+            last_synced_at: new Date().toISOString()
+          }, false);
+        }
+        // If local is dirty but no version conflict, keep local changes
       }
-      // If local is dirty but no version conflict, keep local changes
+    } catch (error) {
+      console.error('[SyncService] Error merging server record:', error);
+      throw error;
     }
   }
 
@@ -453,17 +492,17 @@ class SyncService {
       },
       bp_reminders: {
         read: '/reminders/bp-reminders/1',
-        write: '/reminders/bp-reminder/',
+        write: '/reminders/bp-reminder',
         delete: '/reminders/bp-reminder'
       },
       doctor_reminders: {
         read: '/reminders/doctor-appointments/1',
-        write: '/reminders/doctor-appointment/',
+        write: '/reminders/doctor-appointment',
         delete: '/reminders/doctor-appointment'
       },
       workout_reminders: {
         read: '/reminders/workouts/1',
-        write: '/reminders/workout/',
+        write: '/reminders/workout',
         delete: '/reminders/workout'
       },
       health_advisor_conversations: {

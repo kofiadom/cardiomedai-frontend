@@ -217,7 +217,7 @@ function NotificationSettings() {
               </Text>
               <View style={tw`px-3 py-1 rounded-full ${permissionStatus === 'granted' ? 'bg-green-100' : 'bg-red-100'}`}>
                 <Text style={tw`text-xs font-medium ${permissionStatus === 'granted' ? 'text-green-600' : 'text-red-600'}`}>
-                  {permissionStatus === 'granted' ? 'Enabled' : 'Disabled'}
+                  {String(permissionStatus === 'granted' ? 'Enabled' : 'Disabled')}
                 </Text>
               </View>
             </View>

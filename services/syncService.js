@@ -243,7 +243,12 @@ class SyncService {
       try {
         const result = await this.pushRecord(tableName, record);
         if (result.success) {
-          // Mark as synced
+          // Mark as synced (including skipped records)
+          await databaseService.markAsSynced(tableName, [record.id]);
+          synced++;
+        } else if (result.skipped) {
+          // Also mark skipped incomplete records as synced to prevent retry
+          console.log(`[SyncService] Marking skipped incomplete record ${record.id} as synced`);
           await databaseService.markAsSynced(tableName, [record.id]);
           synced++;
         } else {
@@ -267,6 +272,12 @@ class SyncService {
 
     // Clean record data (remove sync metadata)
     const cleanRecord = this.cleanRecordForSync(record);
+    
+    // Skip if record is incomplete (only has completion data)
+    if (!cleanRecord) {
+      console.log(`[SyncService] Skipping incomplete record for ${tableName}`);
+      return { success: true, skipped: true };
+    }
     
     try {
       let url = `${this.baseUrl}${endpoint}`;
@@ -348,11 +359,24 @@ class SyncService {
       const existingRecord = await databaseService.findById(tableName, serverRecord.id);
       
       if (!existingRecord) {
-        // New record from server
-        await databaseService.insert(tableName, {
-          ...serverRecord,
-          last_synced_at: new Date().toISOString()
-        }, false); // Don't mark as dirty
+        // New record from server - try insert with error handling for duplicates
+        try {
+          await databaseService.insert(tableName, {
+            ...serverRecord,
+            last_synced_at: new Date().toISOString()
+          }, false); // Don't mark as dirty
+        } catch (insertError) {
+          if (insertError.message.includes('UNIQUE constraint failed')) {
+            console.log(`[SyncService] Record ${serverRecord.id} already exists, treating as update`);
+            // Record exists but wasn't found - try update instead
+            await databaseService.update(tableName, serverRecord.id, {
+              ...serverRecord,
+              last_synced_at: new Date().toISOString()
+            }, false);
+          } else {
+            throw insertError;
+          }
+        }
       } else {
         // Check for conflicts
         if (existingRecord.is_dirty && existingRecord.version !== serverRecord.version) {
@@ -399,8 +423,8 @@ class SyncService {
       case 'bp_reminders':
       case 'doctor_reminders':
       case 'workout_reminders':
-        // For reminders, prefer local changes (user likely modified recently)
-        return localRecord;
+        // For reminders, handle completion status intelligently
+        return this.mergeReminderConflict(localRecord, serverRecord);
       
       default:
         // Last-write-wins based on updated_at
@@ -420,6 +444,65 @@ class SyncService {
         ? localRecord.medications : serverRecord.medications,
       last_synced_at: new Date().toISOString()
     };
+  }
+
+  mergeReminderConflict(localRecord, serverRecord) {
+    // Determine completion status based on table type
+    const getCompletionStatus = (record) => {
+      // Medication reminders use is_taken, others use is_completed
+      return record.is_taken || record.is_completed;
+    };
+    
+    const localCompleted = getCompletionStatus(localRecord);
+    const serverCompleted = getCompletionStatus(serverRecord);
+    
+    if (localCompleted && !serverCompleted) {
+      console.log(`[SyncService] Local reminder ${localRecord.id} is completed, keeping local state`);
+      // Only include the completion field that exists in the record
+      const completionFields = {};
+      if (localRecord.is_taken !== undefined) {
+        completionFields.is_taken = localRecord.is_taken;
+      }
+      if (localRecord.is_completed !== undefined) {
+        completionFields.is_completed = localRecord.is_completed;
+      }
+      if (localRecord.completed_at !== undefined) {
+        completionFields.completed_at = localRecord.completed_at;
+      }
+      
+      return {
+        ...serverRecord,
+        ...completionFields,
+        last_synced_at: new Date().toISOString()
+      };
+    }
+    
+    // If server is completed but local isn't, prefer server
+    if (serverCompleted && !localCompleted) {
+      console.log(`[SyncService] Server reminder ${serverRecord.id} is completed, using server state`);
+      return {
+        ...serverRecord,
+        last_synced_at: new Date().toISOString()
+      };
+    }
+    
+    // If both are completed or both are not completed, use last-write-wins
+    const localTime = new Date(localRecord.updated_at || localRecord.created_at);
+    const serverTime = new Date(serverRecord.updated_at || serverRecord.created_at);
+    
+    if (localTime > serverTime) {
+      console.log(`[SyncService] Local reminder ${localRecord.id} is newer, keeping local state`);
+      return {
+        ...localRecord,
+        last_synced_at: new Date().toISOString()
+      };
+    } else {
+      console.log(`[SyncService] Server reminder ${serverRecord.id} is newer, using server state`);
+      return {
+        ...serverRecord,
+        last_synced_at: new Date().toISOString()
+      };
+    }
   }
 
   // Process sync queue for failed operations
@@ -492,17 +575,17 @@ class SyncService {
       },
       bp_reminders: {
         read: '/reminders/bp-reminders/1',
-        write: '/reminders/bp-reminder',
+        write: '/reminders/bp-reminder/',
         delete: '/reminders/bp-reminder'
       },
       doctor_reminders: {
         read: '/reminders/doctor-appointments/1',
-        write: '/reminders/doctor-appointment',
+        write: '/reminders/doctor-appointment/',
         delete: '/reminders/doctor-appointment'
       },
       workout_reminders: {
         read: '/reminders/workouts/1',
-        write: '/reminders/workout',
+        write: '/reminders/workout/',
         delete: '/reminders/workout'
       },
       health_advisor_conversations: {
@@ -531,6 +614,15 @@ class SyncService {
       deleted_at,
       ...cleanRecord
     } = record;
+
+    // Don't send records that only have completion status - they're incomplete
+    const hasOnlyCompletionData = Object.keys(cleanRecord).length <= 3 &&
+      (cleanRecord.is_completed !== undefined || cleanRecord.is_taken !== undefined || cleanRecord.completed_at !== undefined);
+    
+    if (hasOnlyCompletionData) {
+      console.log('[SyncService] Skipping incomplete record that only has completion data:', cleanRecord);
+      return null;
+    }
 
     return cleanRecord;
   }

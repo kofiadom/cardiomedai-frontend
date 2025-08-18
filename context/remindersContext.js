@@ -468,14 +468,14 @@ export const RemindersContext = ({ children }) => {
   // Listen for sync events
   useEffect(() => {
     const handleSyncEvent = (event, data) => {
-      if (event === 'syncCompleted' || event === 'tableSync') {
-        const reminderTables = ['medication_reminders', 'bp_reminders', 'doctor_reminders', 'workout_reminders'];
-        if (!data.tableName || reminderTables.includes(data.tableName)) {
-          loadAllData();
-        }
+      if (event === 'syncCompleted') {
+        // Only reload data when full sync is completed, not on individual table syncs
+        console.log('[RemindersContext] Full sync completed, reloading reminder data');
+        loadAllData();
       } else if (event === 'networkChanged') {
         setSyncStatus(prev => ({ ...prev, isOnline: data.isOnline }));
       }
+      // Don't reload on 'tableSync' events to avoid overwriting conflict resolutions
     };
 
     syncService.addSyncListener(handleSyncEvent);

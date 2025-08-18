@@ -292,7 +292,7 @@ function Reminders() {
             {/* Mark as complete button - show different state if completed */}
             {!isCompleted ? (
               <TouchableOpacity
-                style={tw`ml-4 bg-${activeTabData.color.replace('#', '')}-100 rounded-full p-3 mr-2`}
+                style={[tw`ml-4 rounded-full p-3 mr-2`, { backgroundColor: `${activeTabData.color}20` }]}
                 onPress={() => handleMarkComplete(reminder.id, type)}
               >
                 <Ionicons
@@ -341,7 +341,7 @@ function Reminders() {
         No {activeTabData.label} Reminders
       </Text>
       <Text style={tw`text-gray-500 text-center mb-4`}>
-        You don't have any {activeTabData.label.toLowerCase()} reminders set up yet.
+        You don&apos;t have any {activeTabData.label.toLowerCase()} reminders set up yet.
       </Text>
 
       {type === 'medication' ? (
@@ -355,13 +355,12 @@ function Reminders() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={tw`border-2 border-dashed px-6 py-3 rounded-2xl`}
             style={[tw`border-2 border-dashed px-6 py-3 rounded-2xl`, { borderColor: activeTabData.color }]}
             onPress={() => router.push('/screens/UploadPrescription')}
           >
             <View style={tw`flex-row items-center justify-center`}>
               <Ionicons name="camera" size={18} color={activeTabData.color} />
-              <Text style={tw`font-semibold ml-2`} style={[tw`font-semibold ml-2`, { color: activeTabData.color }]}>
+              <Text style={[tw`font-semibold ml-2`, { color: activeTabData.color }]}>
                 Upload Prescription
               </Text>
             </View>

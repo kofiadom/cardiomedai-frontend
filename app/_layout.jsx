@@ -30,16 +30,6 @@ export default function RootLayout() {
         try {
           await databaseService.initialize();
           databaseInitialized = true;
-          
-          // Reset database to ensure clean schema (development only)
-          if (__DEV__) {
-            console.log('🔄 Resetting database for clean schema...');
-            await databaseService.resetDatabase();
-            
-            // Wait longer for database to be fully ready after reset
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-          
           console.log('✅ Database initialized');
         } catch (dbError) {
           console.error('❌ Database initialization failed:', dbError.message);

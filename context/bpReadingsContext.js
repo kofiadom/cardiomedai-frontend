@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import bpReadingsRepository from "../repositories/BPReadingsRepository";
-import syncService from "../services/syncService";
 
 const BpReaderProvider = createContext();
 
@@ -8,56 +7,17 @@ export const BpReaderContext = ({ children }) => {
   const [data, setData] = useState([]);
   const [error, setError] = useState(null);
   const [bpReaderLoading, setBpReaderLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState({
-    isOnline: true,
-    isSyncing: false,
-    lastSync: null,
-    hasPendingChanges: false
-  });
 
   const USER_ID = 1; // TODO: Get from user context
 
-  // Load data from repository or fallback to API
-  const loadData = async (syncFirst = false) => {
+  // Load data from repository
+  const loadData = async () => {
     try {
       setBpReaderLoading(true);
       setError(null);
       
-      // Try repository first (offline-capable)
-      try {
-        const readings = await bpReadingsRepository.getReadingsForUser(USER_ID, 100);
-        setData(readings);
-        
-        // Update sync status
-        const status = await bpReadingsRepository.getSyncStatus();
-        setSyncStatus(status);
-      } catch (repoError) {
-        console.warn('[BpReaderContext] Repository failed, falling back to API:', repoError.message);
-        
-        // Fallback to direct API call
-        const response = await fetch(`https://cardiomedai-api.onrender.com/bp/readings/${USER_ID}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch data from API');
-        }
-        
-        const apiData = await response.json();
-        const readings = Array.isArray(apiData) ? apiData : [];
-        setData(readings);
-        
-        // Set offline sync status
-        setSyncStatus({
-          isOnline: true,
-          isSyncing: false,
-          lastSync: null,
-          hasPendingChanges: false
-        });
-      }
+      const readings = await bpReadingsRepository.getReadingsForUser(USER_ID, 100);
+      setData(readings);
     } catch (err) {
       console.error('[BpReaderContext] Failed to load data:', err);
       setError(err.message);
@@ -121,40 +81,10 @@ export const BpReaderContext = ({ children }) => {
     }
   };
 
-  // Force sync
-  const syncNow = async () => {
-    try {
-      await bpReadingsRepository.sync();
-      await loadData();
-    } catch (err) {
-      console.error('[BpReaderContext] Sync failed:', err);
-      throw err;
-    }
-  };
-
   // Mutate function for compatibility with existing code
   const mutate = async () => {
     await loadData();
   };
-
-  // Listen for sync events
-  useEffect(() => {
-    const handleSyncEvent = (event, data) => {
-      if (event === 'syncCompleted' || event === 'tableSync') {
-        if (!data.tableName || data.tableName === 'bp_readings') {
-          loadData();
-        }
-      } else if (event === 'networkChanged') {
-        setSyncStatus(prev => ({ ...prev, isOnline: data.isOnline }));
-      }
-    };
-
-    syncService.addSyncListener(handleSyncEvent);
-    
-    return () => {
-      syncService.removeSyncListener(handleSyncEvent);
-    };
-  }, []);
 
   // Initial data load
   useEffect(() => {
@@ -166,7 +96,6 @@ export const BpReaderContext = ({ children }) => {
     data,
     error,
     bpReaderLoading,
-    syncStatus,
     
     // Methods
     mutate,
@@ -175,7 +104,6 @@ export const BpReaderContext = ({ children }) => {
     getRecentReadings,
     getAverageReadings,
     getReadingsStats,
-    syncNow,
     
     // Utility methods
     interpretBP: bpReadingsRepository.interpretBP.bind(bpReadingsRepository),

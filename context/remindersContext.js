@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import remindersRepository from "../repositories/RemindersRepository";
-import syncService from "../services/syncService";
-import databaseService from "../services/databaseService";
 import NotificationService from "../services/notificationService";
 
 const RemindersProvider = createContext();
@@ -28,13 +26,6 @@ export const RemindersContext = ({ children }) => {
   const [upcomingMedLoading, setUpcomingMedLoading] = useState(true);
   const [upcomingBPLoading, setUpcomingBPLoading] = useState(true);
 
-  const [syncStatus, setSyncStatus] = useState({
-    isOnline: true,
-    isSyncing: false,
-    lastSync: null,
-    hasPendingChanges: false
-  });
-
   const USER_ID = 1; // TODO: Get from user context
 
   // Load all reminders data
@@ -48,31 +39,14 @@ export const RemindersContext = ({ children }) => {
     ]);
   };
 
-  // Load medication reminders with API fallback
+  // Load medication reminders
   const loadMedicationReminders = async () => {
     try {
       setMedicationLoading(true);
       setMedicationError(null);
       
-      try {
-        const data = await remindersRepository.getMedicationReminders(USER_ID);
-        setMedicationReminders(data);
-      } catch (repoError) {
-        console.warn('[RemindersContext] Repository failed, falling back to API for medication reminders:', repoError.message);
-        
-        // Fallback to API
-        const response = await fetch(`https://cardiomedai-api.onrender.com/reminders/${USER_ID}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        
-        if (response.ok) {
-          const apiData = await response.json();
-          setMedicationReminders(Array.isArray(apiData) ? apiData : []);
-        } else {
-          setMedicationReminders([]);
-        }
-      }
+      const data = await remindersRepository.getMedicationReminders(USER_ID);
+      setMedicationReminders(data);
     } catch (err) {
       console.error('[RemindersContext] Failed to load medication reminders:', err);
       setMedicationError(err.message);
@@ -82,31 +56,14 @@ export const RemindersContext = ({ children }) => {
     }
   };
 
-  // Load BP reminders with API fallback
+  // Load BP reminders
   const loadBPReminders = async () => {
     try {
       setBpLoading(true);
       setBpError(null);
       
-      try {
-        const data = await remindersRepository.getBPReminders(USER_ID);
-        setBpReminders(data);
-      } catch (repoError) {
-        console.warn('[RemindersContext] Repository failed, falling back to API for BP reminders:', repoError.message);
-        
-        // Fallback to API
-        const response = await fetch(`https://cardiomedai-api.onrender.com/reminders/bp-reminders/${USER_ID}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        
-        if (response.ok) {
-          const apiData = await response.json();
-          setBpReminders(Array.isArray(apiData) ? apiData : []);
-        } else {
-          setBpReminders([]);
-        }
-      }
+      const data = await remindersRepository.getBPReminders(USER_ID);
+      setBpReminders(data);
     } catch (err) {
       console.error('[RemindersContext] Failed to load BP reminders:', err);
       setBpError(err.message);
@@ -116,31 +73,14 @@ export const RemindersContext = ({ children }) => {
     }
   };
 
-  // Load doctor reminders with API fallback
+  // Load doctor reminders
   const loadDoctorReminders = async () => {
     try {
       setDoctorLoading(true);
       setDoctorError(null);
       
-      try {
-        const data = await remindersRepository.getDoctorReminders(USER_ID);
-        setDoctorReminders(data);
-      } catch (repoError) {
-        console.warn('[RemindersContext] Repository failed, falling back to API for doctor reminders:', repoError.message);
-        
-        // Fallback to API
-        const response = await fetch(`https://cardiomedai-api.onrender.com/reminders/doctor-appointments/${USER_ID}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        
-        if (response.ok) {
-          const apiData = await response.json();
-          setDoctorReminders(Array.isArray(apiData) ? apiData : []);
-        } else {
-          setDoctorReminders([]);
-        }
-      }
+      const data = await remindersRepository.getDoctorReminders(USER_ID);
+      setDoctorReminders(data);
     } catch (err) {
       console.error('[RemindersContext] Failed to load doctor reminders:', err);
       setDoctorError(err.message);
@@ -150,31 +90,14 @@ export const RemindersContext = ({ children }) => {
     }
   };
 
-  // Load workout reminders with API fallback
+  // Load workout reminders
   const loadWorkoutReminders = async () => {
     try {
       setWorkoutLoading(true);
       setWorkoutError(null);
       
-      try {
-        const data = await remindersRepository.getWorkoutReminders(USER_ID);
-        setWorkoutReminders(data);
-      } catch (repoError) {
-        console.warn('[RemindersContext] Repository failed, falling back to API for workout reminders:', repoError.message);
-        
-        // Fallback to API
-        const response = await fetch(`https://cardiomedai-api.onrender.com/reminders/workouts/${USER_ID}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        
-        if (response.ok) {
-          const apiData = await response.json();
-          setWorkoutReminders(Array.isArray(apiData) ? apiData : []);
-        } else {
-          setWorkoutReminders([]);
-        }
-      }
+      const data = await remindersRepository.getWorkoutReminders(USER_ID);
+      setWorkoutReminders(data);
     } catch (err) {
       console.error('[RemindersContext] Failed to load workout reminders:', err);
       setWorkoutError(err.message);
@@ -184,7 +107,7 @@ export const RemindersContext = ({ children }) => {
     }
   };
 
-  // Load upcoming reminders with API fallback
+  // Load upcoming reminders
   const loadUpcomingReminders = async () => {
     try {
       setUpcomingMedLoading(true);
@@ -192,31 +115,9 @@ export const RemindersContext = ({ children }) => {
       setUpcomingMedError(null);
       setUpcomingBPError(null);
       
-      try {
-        const upcoming = await remindersRepository.getUpcomingReminders(USER_ID, 24);
-        setUpcomingMedication(upcoming.medication);
-        setUpcomingBP(upcoming.bp);
-      } catch (repoError) {
-        console.warn('[RemindersContext] Repository failed, falling back to API for upcoming reminders:', repoError.message);
-        
-        // Fallback to API calls
-        try {
-          const [medResponse, bpResponse] = await Promise.all([
-            fetch(`https://cardiomedai-api.onrender.com/reminders/upcoming/${USER_ID}?hours=24`),
-            fetch(`https://cardiomedai-api.onrender.com/reminders/bp-upcoming/${USER_ID}?hours=24`)
-          ]);
-          
-          const medData = medResponse.ok ? await medResponse.json() : [];
-          const bpData = bpResponse.ok ? await bpResponse.json() : [];
-          
-          setUpcomingMedication(Array.isArray(medData) ? medData : []);
-          setUpcomingBP(Array.isArray(bpData) ? bpData : []);
-        } catch (apiError) {
-          console.error('[RemindersContext] API fallback failed:', apiError);
-          setUpcomingMedication([]);
-          setUpcomingBP([]);
-        }
-      }
+      const upcoming = await remindersRepository.getUpcomingReminders(USER_ID, 24);
+      setUpcomingMedication(upcoming.medication);
+      setUpcomingBP(upcoming.bp);
     } catch (err) {
       console.error('[RemindersContext] Failed to load upcoming reminders:', err);
       setUpcomingMedError(err.message);
@@ -229,30 +130,9 @@ export const RemindersContext = ({ children }) => {
     }
   };
 
-  // Update sync status
-  const updateSyncStatus = async () => {
-    try {
-      const status = await remindersRepository.getSyncStatus();
-      setSyncStatus(status);
-    } catch (err) {
-      console.error('[RemindersContext] Failed to update sync status:', err);
-    }
-  };
-
   // Create reminder functions using repository
   const createMedicationReminder = async (reminderData) => {
     try {
-      // Check if database is available
-      if (!databaseService.isInitialized) {
-        console.warn('[RemindersContext] Database not initialized, attempting to initialize...');
-        try {
-          await databaseService.initialize();
-        } catch (initError) {
-          console.error('[RemindersContext] Database initialization failed:', initError);
-          throw new Error('Database not available. Please try again.');
-        }
-      }
-
       const newReminder = await remindersRepository.createMedicationReminder(USER_ID, reminderData);
       
       // Schedule notification
@@ -272,17 +152,6 @@ export const RemindersContext = ({ children }) => {
 
   const createBPReminder = async (reminderData) => {
     try {
-      // Check if database is available
-      if (!databaseService.isInitialized) {
-        console.warn('[RemindersContext] Database not initialized, attempting to initialize...');
-        try {
-          await databaseService.initialize();
-        } catch (initError) {
-          console.error('[RemindersContext] Database initialization failed:', initError);
-          throw new Error('Database not available. Please try again.');
-        }
-      }
-
       const newReminder = await remindersRepository.createBPReminder(USER_ID, reminderData);
       
       // Schedule notification
@@ -446,17 +315,6 @@ export const RemindersContext = ({ children }) => {
     }
   };
 
-  // Force sync
-  const syncNow = async () => {
-    try {
-      await remindersRepository.sync();
-      await loadAllData();
-    } catch (err) {
-      console.error('[RemindersContext] Sync failed:', err);
-      throw err;
-    }
-  };
-
   // Mutate functions for compatibility
   const mutateMedication = loadMedicationReminders;
   const mutateBP = loadBPReminders;
@@ -465,30 +323,9 @@ export const RemindersContext = ({ children }) => {
   const mutateUpcomingMed = loadUpcomingReminders;
   const mutateUpcomingBP = loadUpcomingReminders;
 
-  // Listen for sync events
-  useEffect(() => {
-    const handleSyncEvent = (event, data) => {
-      if (event === 'syncCompleted') {
-        // Only reload data when full sync is completed, not on individual table syncs
-        console.log('[RemindersContext] Full sync completed, reloading reminder data');
-        loadAllData();
-      } else if (event === 'networkChanged') {
-        setSyncStatus(prev => ({ ...prev, isOnline: data.isOnline }));
-      }
-      // Don't reload on 'tableSync' events to avoid overwriting conflict resolutions
-    };
-
-    syncService.addSyncListener(handleSyncEvent);
-    
-    return () => {
-      syncService.removeSyncListener(handleSyncEvent);
-    };
-  }, []);
-
-  // Initial data load and sync status update
+  // Initial data load
   useEffect(() => {
     loadAllData();
-    updateSyncStatus();
   }, []);
 
   const value = {
@@ -499,7 +336,6 @@ export const RemindersContext = ({ children }) => {
     workoutReminders,
     upcomingMedication,
     upcomingBP,
-    syncStatus,
 
     // Loading states
     medicationLoading,
@@ -542,7 +378,6 @@ export const RemindersContext = ({ children }) => {
     // Utility functions
     getRemindersStats,
     getOverdueReminders,
-    syncNow,
   };
 
   return (

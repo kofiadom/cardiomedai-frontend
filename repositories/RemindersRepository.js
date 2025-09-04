@@ -21,7 +21,7 @@ class RemindersRepository extends BaseRepository {
         is_taken: 0
       };
 
-      // Ensure we're using the correct table for medication reminders
+      // Use medication_reminders table
       return await this.createInTable('medication_reminders', data, userId);
     } catch (error) {
       console.error('[RemindersRepository] CreateMedicationReminder failed:', error);
@@ -101,31 +101,51 @@ class RemindersRepository extends BaseRepository {
   // Helper method to create in specific table
   async createInTable(tableName, data, userId) {
     const originalTableName = this.tableName;
+    const originalApiEndpoint = this.apiEndpoint;
+    
+    // Set the appropriate endpoint for each reminder type
+    switch (tableName) {
+      case 'medication_reminders':
+        this.apiEndpoint = '/reminders/';
+        break;
+      case 'bp_reminders':
+        this.apiEndpoint = '/reminders/bp-reminder/';
+        break;
+      case 'doctor_reminders':
+        this.apiEndpoint = '/reminders/doctor-appointment/';
+        break;
+      case 'workout_reminders':
+        this.apiEndpoint = '/reminders/workout/';
+        break;
+    }
+    
     this.tableName = tableName;
     try {
       const result = await this.create(data, userId);
       return result;
     } finally {
       this.tableName = originalTableName;
+      this.apiEndpoint = originalApiEndpoint;
     }
   }
 
   // Get medication reminders for user
   async getMedicationReminders(userId, includeTaken = true) {
     try {
-      const conditions = { user_id: userId };
-      if (!includeTaken) {
-        conditions.is_taken = 0;
+      const url = `${this.baseUrl}/reminders/${userId}${!includeTaken ? '?include_taken=false' : ''}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
-      // Ensure we're using the correct table
-      const originalTableName = this.tableName;
-      this.tableName = 'medication_reminders';
-      try {
-        return await this.findAll(conditions, 'schedule_datetime ASC');
-      } finally {
-        this.tableName = originalTableName;
-      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('[RemindersRepository] GetMedicationReminders failed:', error);
       throw error;
@@ -135,18 +155,20 @@ class RemindersRepository extends BaseRepository {
   // Get BP reminders for user
   async getBPReminders(userId, includeCompleted = true) {
     try {
-      const conditions = { user_id: userId };
-      if (!includeCompleted) {
-        conditions.is_completed = 0;
+      const url = `${this.baseUrl}/reminders/bp-reminders/${userId}${!includeCompleted ? '?include_completed=false' : ''}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const originalTableName = this.tableName;
-      this.tableName = 'bp_reminders';
-      try {
-        return await this.findAll(conditions, 'reminder_datetime ASC');
-      } finally {
-        this.tableName = originalTableName;
-      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('[RemindersRepository] GetBPReminders failed:', error);
       throw error;
@@ -156,18 +178,20 @@ class RemindersRepository extends BaseRepository {
   // Get doctor reminders for user
   async getDoctorReminders(userId, includeCompleted = true) {
     try {
-      const conditions = { user_id: userId };
-      if (!includeCompleted) {
-        conditions.is_completed = 0;
+      const url = `${this.baseUrl}/reminders/doctor-appointments/${userId}${!includeCompleted ? '?include_completed=false' : ''}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const originalTableName = this.tableName;
-      this.tableName = 'doctor_reminders';
-      try {
-        return await this.findAll(conditions, 'appointment_datetime ASC');
-      } finally {
-        this.tableName = originalTableName;
-      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('[RemindersRepository] GetDoctorReminders failed:', error);
       throw error;
@@ -177,18 +201,20 @@ class RemindersRepository extends BaseRepository {
   // Get workout reminders for user
   async getWorkoutReminders(userId, includeCompleted = true) {
     try {
-      const conditions = { user_id: userId };
-      if (!includeCompleted) {
-        conditions.is_completed = 0;
+      const url = `${this.baseUrl}/reminders/workouts/${userId}${!includeCompleted ? '?include_completed=false' : ''}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const originalTableName = this.tableName;
-      this.tableName = 'workout_reminders';
-      try {
-        return await this.findAll(conditions, 'workout_datetime ASC');
-      } finally {
-        this.tableName = originalTableName;
-      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('[RemindersRepository] GetWorkoutReminders failed:', error);
       throw error;
@@ -246,16 +272,18 @@ class RemindersRepository extends BaseRepository {
   // Mark medication as taken
   async markMedicationTaken(reminderId) {
     try {
-      const originalTableName = this.tableName;
-      this.tableName = 'medication_reminders';
-      try {
-        return await this.update(reminderId, {
-          is_taken: 1,
-          taken_at: new Date().toISOString()
-        });
-      } finally {
-        this.tableName = originalTableName;
+      const response = await fetch(`${this.baseUrl}/reminders/mark-taken/${reminderId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      return await response.json();
     } catch (error) {
       console.error('[RemindersRepository] MarkMedicationTaken failed:', error);
       throw error;
@@ -265,16 +293,18 @@ class RemindersRepository extends BaseRepository {
   // Mark BP reminder as completed
   async markBPCompleted(reminderId) {
     try {
-      const originalTableName = this.tableName;
-      this.tableName = 'bp_reminders';
-      try {
-        return await this.update(reminderId, {
-          is_completed: 1,
-          completed_at: new Date().toISOString()
-        });
-      } finally {
-        this.tableName = originalTableName;
+      const response = await fetch(`${this.baseUrl}/reminders/bp-reminder/${reminderId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      return await response.json();
     } catch (error) {
       console.error('[RemindersRepository] MarkBPCompleted failed:', error);
       throw error;
@@ -284,16 +314,18 @@ class RemindersRepository extends BaseRepository {
   // Mark doctor appointment as completed
   async markDoctorCompleted(reminderId) {
     try {
-      const originalTableName = this.tableName;
-      this.tableName = 'doctor_reminders';
-      try {
-        return await this.update(reminderId, {
-          is_completed: 1,
-          completed_at: new Date().toISOString()
-        });
-      } finally {
-        this.tableName = originalTableName;
+      const response = await fetch(`${this.baseUrl}/reminders/doctor-appointment/${reminderId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      return await response.json();
     } catch (error) {
       console.error('[RemindersRepository] MarkDoctorCompleted failed:', error);
       throw error;
@@ -303,16 +335,18 @@ class RemindersRepository extends BaseRepository {
   // Mark workout as completed
   async markWorkoutCompleted(reminderId) {
     try {
-      const originalTableName = this.tableName;
-      this.tableName = 'workout_reminders';
-      try {
-        return await this.update(reminderId, {
-          is_completed: 1,
-          completed_at: new Date().toISOString()
-        });
-      } finally {
-        this.tableName = originalTableName;
+      const response = await fetch(`${this.baseUrl}/reminders/workout/${reminderId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      return await response.json();
     } catch (error) {
       console.error('[RemindersRepository] MarkWorkoutCompleted failed:', error);
       throw error;

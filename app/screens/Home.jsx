@@ -1,4 +1,5 @@
-import { useContext } from "react";
+
+import { useContext, useState, useEffect } from "react";
 import {
   Text,
   View,
@@ -35,8 +36,8 @@ function Index() {
   const containerWidth = screenWidth * 0.92;
   const navigation = useNavigation();
   const { data = [] } = useContext(BpReaderProvider) || {}
-  const { average } = useContext(AverageBpProvider) || {};
-  const { advisor } = useContext(HealthAdvisorProvider) || {};
+  const { average, mutate: mutateAverage } = useContext(AverageBpProvider) || {};
+  const { advisor, mutate: mutateAdvisor } = useContext(HealthAdvisorProvider) || {};
   const remindersContext = useContext(RemindersProvider) || {};
   const {
     upcomingMedication = [],
@@ -62,10 +63,6 @@ function Index() {
     mutateUpcomingMed,
     mutateUpcomingBP
   } = remindersContext;
-
-
-
-
 
   const quickActions = [
     {
@@ -417,17 +414,9 @@ function Index() {
       );
 
       // Add non-null upcoming reminders
-      console.log(`[DEBUG] Individual upcoming tasks:`, {
-        nextMedication,
-        nextBP,
-        nextDoctor,
-        nextWorkout
-      });
-
       const upcomingTasks = [nextMedication, nextBP, nextDoctor, nextWorkout]
         .filter(task => task !== null);
 
-      console.log(`[DEBUG] Final upcoming tasks after filtering:`, upcomingTasks);
       if (Array.isArray(upcomingTasks)) {
         upcomingTasks.forEach(task => tasks.push(task));
       }
@@ -450,10 +439,6 @@ function Index() {
   const completedTasks = Array.isArray(todayTasks) ? todayTasks.filter(task => task && task.completed).length : 0;
   const totalTasks = Array.isArray(todayTasks) ? todayTasks.length : 0;
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-
-
-
 
   // Check if we're showing today's tasks or upcoming tasks
   const hasActualTodayTasks = Array.isArray(todayTasks) ? todayTasks.some(task => task && !task.isUpcoming) : false;
@@ -731,65 +716,6 @@ function Index() {
             )}
           </View>
 
-          {/* Upcoming Reminders */}
-          {((upcomingMedication && upcomingMedication.length > 0) || (upcomingBP && upcomingBP.length > 0)) && (
-            <View style={tw`mb-8`}>
-              <View style={tw`flex-row items-center justify-between mb-4`}>
-                <Text style={tw`font-bold text-base text-gray-900`}>
-                  Upcoming Reminders
-                </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('screens/Reminders')}>
-                  <Text style={tw`text-blue-600 font-medium text-sm`}>
-                    View All
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {(upcomingMedication || []).slice(0, 3).map((reminder) => (
-                  <View key={reminder.id} style={tw`bg-white rounded-2xl p-4 mr-4 border border-gray-100 w-64`}>
-                    <View style={tw`flex-row items-center mb-2`}>
-                      <View style={tw`bg-green-100 rounded-full p-2 mr-3`}>
-                        <Ionicons name="medical" size={16} color="#10b981" />
-                      </View>
-                      <View style={tw`flex-1`}>
-                        <Text style={tw`font-semibold text-gray-900 text-sm`}>
-                          {reminder.name}
-                        </Text>
-                        <Text style={tw`text-gray-500 text-xs`}>
-                          {reminder.schedule_dosage}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={tw`text-gray-600 text-xs`}>
-                      {new Date(reminder.schedule_datetime).toLocaleString()}
-                    </Text>
-                  </View>
-                ))}
-
-                {(upcomingBP || []).slice(0, 2).map((reminder) => (
-                  <View key={reminder.id} style={tw`bg-white rounded-2xl p-4 mr-4 border border-gray-100 w-64`}>
-                    <View style={tw`flex-row items-center mb-2`}>
-                      <View style={tw`bg-blue-100 rounded-full p-2 mr-3`}>
-                        <Ionicons name="heart" size={16} color="#3b82f6" />
-                      </View>
-                      <View style={tw`flex-1`}>
-                        <Text style={tw`font-semibold text-gray-900 text-sm`}>
-                          BP Check
-                        </Text>
-                        <Text style={tw`text-gray-500 text-xs`}>
-                          {reminder.bp_category}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={tw`text-gray-600 text-xs`}>
-                      {new Date(reminder.reminder_datetime).toLocaleString()}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
 
           {/* Enhanced Quick Actions */}
           <View style={tw`mb-8`}>
@@ -815,7 +741,7 @@ function Index() {
                   <View style={tw`relative`}>
                     <LinearGradient
                       colors={[action.bgColor, "rgba(255,255,255,0.9)"]}
-                      style={tw`w-full aspect-square rounded-3xl flex 
+                      style={tw`w-full aspect-square rounded-3xl flex
                       justify-center items-center mb-3 border border-gray-100`}
                     >
                       <View

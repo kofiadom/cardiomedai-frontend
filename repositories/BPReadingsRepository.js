@@ -43,7 +43,20 @@ class BPReadingsRepository extends BaseRepository {
   // Get readings for user
   async getReadingsForUser(userId, limit = 100, orderBy = 'reading_time DESC') {
     try {
-      return await this.findAll({ user_id: userId }, orderBy, limit);
+      const response = await fetch(`${this.baseUrl}/bp/readings/${userId}?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('[BPReadingsRepository] GetReadingsForUser failed:', error);
       throw error;

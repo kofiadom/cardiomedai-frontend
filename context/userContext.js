@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import userRepository from "../repositories/UserRepository";
-import syncService from "../services/syncService";
 
 const UserProvider = createContext();
 
@@ -9,12 +8,6 @@ export const UserContext = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [error, setError] = useState(null);
   const [userLoading, setUserLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState({
-    isOnline: true,
-    isSyncing: false,
-    lastSync: null,
-    hasPendingChanges: false
-  });
 
   // Load users data
   const loadData = async () => {
@@ -28,10 +21,6 @@ export const UserContext = ({ children }) => {
       // Get current user (assuming user ID 1)
       const user = await userRepository.getCurrentUser();
       setCurrentUser(user);
-      
-      // Update sync status
-      const status = await userRepository.getSyncStatus();
-      setSyncStatus(status);
     } catch (err) {
       console.error('[UserContext] Failed to load data:', err);
       setError(err.message);
@@ -84,40 +73,10 @@ export const UserContext = ({ children }) => {
     }
   };
 
-  // Force sync
-  const syncNow = async () => {
-    try {
-      await userRepository.sync();
-      await loadData();
-    } catch (err) {
-      console.error('[UserContext] Sync failed:', err);
-      throw err;
-    }
-  };
-
   // Mutate function for compatibility with existing code
   const mutate = async () => {
     await loadData();
   };
-
-  // Listen for sync events
-  useEffect(() => {
-    const handleSyncEvent = (event, data) => {
-      if (event === 'syncCompleted' || event === 'tableSync') {
-        if (!data.tableName || data.tableName === 'users') {
-          loadData();
-        }
-      } else if (event === 'networkChanged') {
-        setSyncStatus(prev => ({ ...prev, isOnline: data.isOnline }));
-      }
-    };
-
-    syncService.addSyncListener(handleSyncEvent);
-    
-    return () => {
-      syncService.removeSyncListener(handleSyncEvent);
-    };
-  }, []);
 
   // Initial data load
   useEffect(() => {
@@ -130,7 +89,6 @@ export const UserContext = ({ children }) => {
     currentUser,
     error,
     userLoading,
-    syncStatus,
     
     // Methods
     mutate,
@@ -138,7 +96,6 @@ export const UserContext = ({ children }) => {
     updateProfile,
     getUserByUsername,
     getUserByEmail,
-    syncNow,
   };
 
   return (

@@ -25,7 +25,8 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
-      ]
+      ],
+      "package": "com.neumann7.cardiomedai"
     },
     "web": {
       "bundler": "metro",
@@ -55,6 +56,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4554acd8-28e0-4087-8230-528a0e09b796"
+      }
     }
   }
 }

@@ -143,7 +143,7 @@ function UploadBPMonitorImg() {
       }
 
       // Upload to OCR endpoint
-      const response = await fetch('https://cardiomedai-api.onrender.com/bp/upload/', {
+      const response = await fetch('https://staging.codinnovations.com/cardiomed/bp/upload/', {
         method: 'POST',
         body: formData,
         headers: {
@@ -180,7 +180,7 @@ function UploadBPMonitorImg() {
     setIsUploading(true);
 
     try {
-      const response = await fetch('https://cardiomedai-api.onrender.com/bp/save-ocr/', {
+      const response = await fetch('https://staging.codinnovations.com/cardiomed/bp/save-ocr/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,7 +2,7 @@ import BaseRepository from './BaseRepository';
 
 class RemindersRepository extends BaseRepository {
   constructor() {
-    super('medication_reminders', '/reminders');
+    super('medication_reminders', '/reminders/');
   }
 
   // Create medication reminder

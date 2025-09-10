@@ -1,8 +1,9 @@
+
 class BaseRepository {
   constructor(tableName, apiEndpoint) {
     this.tableName = tableName;
     this.apiEndpoint = apiEndpoint;
-    this.baseUrl = 'https://cardiomedai-api.onrender.com';
+    this.baseUrl = 'https://staging.codinnovations.com/cardiomed';
   }
 
   // Create new record (direct API call)

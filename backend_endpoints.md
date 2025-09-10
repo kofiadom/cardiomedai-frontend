@@ -1,7 +1,7 @@
 # CardioMed AI Backend API Documentation
 
 ## Base Information
-- **Base URL**: `https://cardiomedai-api.onrender.com` (your hosted backend)
+- **Base URL**: `https://staging.codinnovations.com/cardiomed` (your hosted backend)
 - **API Framework**: FastAPI
 - **Authentication**: None required (open API)
 - **CORS**: Enabled for all origins

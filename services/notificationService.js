@@ -3,7 +3,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const BASE_URL = "https://cardiomedai-api.onrender.com";
+const BASE_URL = "https://staging.codinnovations.com/cardiomed";
 const USER_ID = 1; // This should come from user context in a real app
 
 // Configure how notifications are handled when app is in foreground

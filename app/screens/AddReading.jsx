@@ -60,7 +60,7 @@ function AddReading() {
     }
 
     try {
-      const res = await fetch(`https://cardiomedai-api.onrender.com/bp/readings/?user_id=${user_id}`, {
+      const res = await fetch(`https://staging.codinnovations.com/cardiomed/bp/readings/?user_id=${user_id}`, {
         method: 'POST',
         headers: {
           "Content-Type": 'application/json'

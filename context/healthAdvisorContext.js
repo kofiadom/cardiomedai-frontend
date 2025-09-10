@@ -3,7 +3,7 @@ import useSWR from "swr";
 
 const HealthAdvisorProvider = createContext();
 
-const ENDPOINT = "https://cardiomedai-api.onrender.com/health-advisor/advice/1";
+const ENDPOINT = "https://staging.codinnovations.com/cardiomed/health-advisor/advice/1";
 
 const fetcher = async (url) => {
   const res = await fetch(url, {

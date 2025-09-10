@@ -3,7 +3,7 @@ import useSWR from "swr";
 
 const AverageBpProvider = createContext();
 
-const ENDPOINT = "https://cardiomedai-api.onrender.com/bp/readings/stats/1";
+const ENDPOINT = "https://staging.codinnovations.com/cardiomed/bp/readings/stats/1";
 
 const fetcher = async (url) => {
   const res = await fetch(url, {

@@ -74,16 +74,16 @@ function Index() {
       route: "screens/AddReading",
     },
     {
-      icon: "scan",
-      label: "Scan Device",
+      icon: "people",
+      label: "Connect with Clinician",
       color: "#3b82f6",
       bgColor: "#eff6ff",
       shadowColor: "#3b82f6",
       route: "screens/ScanDevice",
     },
     {
-      icon: "cloud-upload",
-      label: "Add Image",
+      icon: "scan-circle",
+      label: "Scan Device",
       color: "#8b5cf6",
       bgColor: "#f5f3ff",
       shadowColor: "#8b5cf6",
@@ -555,17 +555,77 @@ function Index() {
             </View>
 
             <View
-              style={tw`bg-blue-50 rounded-2xl p-4 border border-emerald-100`}
+              style={tw`bg-gradient-to-br from-blue-50 to-emerald-50 rounded-2xl p-5 border border-emerald-100 shadow-sm`}
             >
-              <ScrollView
-                style={tw`max-h-40`}
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
-              >
-                <Text style={tw`text-gray-700 leading-6 text-sm`}>
-                  {advisor?.advisor_response || 'loading...'}
-                </Text>
-              </ScrollView>
+              <View style={tw`flex-row items-start mb-3`}>
+                <View style={tw`bg-emerald-100 rounded-full p-2 mr-3 shadow-sm`}>
+                  <Ionicons name="person-circle" size={20} color="#059669" />
+                </View>
+                <View style={tw`flex-1`}>
+                  <Text style={tw`text-emerald-800 font-bold text-sm mb-1`}>
+                    💬 Health Advisor
+                  </Text>
+                  <Text style={tw`text-emerald-600 text-xs font-medium`}>
+                    Personalized insights for you
+                  </Text>
+                </View>
+              </View>
+
+              <View style={tw`bg-white/80 rounded-xl p-4 shadow-sm border border-emerald-50`}>
+                <ScrollView
+                  style={tw`max-h-32`}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled={true}
+                >
+                  {advisor?.advisor_response ? (
+                    <Text style={tw`text-gray-800 leading-6 text-sm font-medium`}>
+                      {advisor.advisor_response.split('\n').map((line, index) => {
+                        // Handle markdown-like formatting
+                        let processedLine = line;
+                        let lineStyle = tw`block`;
+
+                        // Handle headers (# ## ###)
+                        if (line.startsWith('# ')) {
+                          processedLine = line.substring(2);
+                          lineStyle = tw`block font-bold text-emerald-800 text-base mb-2`;
+                        } else if (line.startsWith('## ')) {
+                          processedLine = line.substring(3);
+                          lineStyle = tw`block font-semibold text-emerald-700 text-sm mb-1`;
+                        } else if (line.startsWith('### ')) {
+                          processedLine = line.substring(4);
+                          lineStyle = tw`block font-medium text-emerald-600 text-sm mb-1`;
+                        }
+                        // Handle bullet points
+                        else if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
+                          processedLine = '• ' + line.substring(2);
+                          lineStyle = tw`block font-medium text-emerald-700 ml-2`;
+                        }
+                        // Handle bold text (**text** or *text*)
+                        else if (line.includes('**') || line.includes('*')) {
+                          lineStyle = tw`block`;
+                        }
+
+                        // Remove markdown characters for display
+                        processedLine = processedLine.replace(/\*\*/g, '').replace(/\*/g, '');
+
+                        return (
+                          <Text key={index} style={lineStyle}>
+                            {processedLine}
+                            {index < advisor.advisor_response.split('\n').length - 1 && '\n'}
+                          </Text>
+                        );
+                      })}
+                    </Text>
+                  ) : (
+                    <View style={tw`flex-row items-center justify-center py-4`}>
+                      <Ionicons name="refresh-circle" size={16} color="#9CA3AF" />
+                      <Text style={tw`text-gray-500 text-sm ml-2 font-medium`}>
+                        Loading personalized advice...
+                      </Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </View>
             </View>
           </View>
 

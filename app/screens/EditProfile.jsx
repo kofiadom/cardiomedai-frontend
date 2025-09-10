@@ -125,7 +125,7 @@ function EditProfile() {
         medications: formData.medications.trim() || null
       };
 
-      const response = await fetch(`https://cardiomedai-api.onrender.com/users/${currentUser.id}`, {
+      const response = await fetch(`https://staging.codinnovations.com/cardiomed/users/${currentUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

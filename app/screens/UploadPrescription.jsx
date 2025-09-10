@@ -124,7 +124,7 @@ function UploadPrescription() {
         formData.append('notes', notes.trim());
       }
 
-      const response = await fetch('https://cardiomedai-api.onrender.com/reminders/upload-prescription', {
+      const response = await fetch('https://staging.codinnovations.com/cardiomed/reminders/upload-prescription', {
         method: 'POST',
         body: formData,
         headers: {
@@ -160,7 +160,7 @@ function UploadPrescription() {
     setIsUploading(true);
     
     try {
-      const response = await fetch('https://cardiomedai-api.onrender.com/reminders/save-ocr-reminders', {
+      const response = await fetch('https://staging.codinnovations.com/cardiomed/reminders/save-ocr-reminders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

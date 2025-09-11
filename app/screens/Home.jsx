@@ -14,12 +14,13 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import ScreenHeader from "../../components/ScreenHeader";
 import BpReaderProvider from "../../context/bpReadingsContext";
 import AverageBpProvider from "../../context/averageReadings";
 import HealthAdvisorProvider from "../../context/healthAdvisorContext";
 import RemindersProvider from "../../context/remindersContext";
+import { useUser } from "../../context/userContext";
 
 function extractDate(date) {
   return date?.split("T")[0];
@@ -32,9 +33,13 @@ function formatTime(datetime) {
 }
 
 function Index() {
+  console.log('[Home] Home screen component loaded');
+  console.log('[Home] Current route params:', useLocalSearchParams());
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-  const navigation = useNavigation();
+  const router = useRouter();
+  const { currentUser } = useUser();
+  console.log('[Home] Current user from context:', currentUser);
   const { data = [] } = useContext(BpReaderProvider) || {}
   const { average, mutate: mutateAverage } = useContext(AverageBpProvider) || {};
   const { advisor, mutate: mutateAdvisor } = useContext(HealthAdvisorProvider) || {};
@@ -447,11 +452,14 @@ function Index() {
     ? `${completedTasks} of ${totalTasks} completed`
     : `Next ${totalTasks} reminder${totalTasks !== 1 ? 's' : ''}`;
 
-  return (
-    <SafeAreaView style={tw`flex-1 bg-[#f8fafc]`}>
-      <StatusBar style="dark" />
-      <View style={[tw`flex-1 mx-auto`, { width: containerWidth }]}>
-        <ScreenHeader />
+  console.log('[Home] Rendering Home screen');
+
+  try {
+    return (
+      <SafeAreaView style={tw`flex-1 bg-[#f8fafc]`}>
+        <StatusBar style="dark" />
+        <View style={[tw`flex-1 mx-auto`, { width: containerWidth }]}>
+          <ScreenHeader />
 
         <ScrollView
           style={tw`flex-1 mt-4`}
@@ -535,45 +543,28 @@ function Index() {
 
           {/* Enhanced Health Insights Card */}
           <View
-            style={tw`bg-white rounded-3xl p-6 mb-6 shadow-lg shadow-gray-500/5 border border-gray-100`}
+            style={tw`bg-white rounded-3xl p-4 mb-6 shadow-lg shadow-gray-500/5 border border-gray-100`}
           >
-            <View style={tw`flex-row items-center mb-5`}>
-              <LinearGradient
-                colors={["#10b981", "#059669"]}
-                style={tw`w-12 h-12 rounded-2xl flex justify-center items-center mr-4 shadow-md shadow-emerald-500/25`}
-              >
-                <Ionicons name="bulb" size={22} color="white" />
-              </LinearGradient>
+            <View style={tw`flex-row items-center mb-3`}>
+              <View style={tw`bg-emerald-100 rounded-full p-1.5 mr-3 shadow-sm`}>
+                <Ionicons name="person-circle" size={20} color="#059669" />
+              </View>
               <View>
-                <Text style={tw`text-gray-900 font-bold text-sm`}>
-                  Health Insights
+                <Text style={tw`text-emerald-800 font-bold text-sm`}>
+                  💬 Health Advisor
                 </Text>
-                <Text style={tw`text-gray-500 text-xs`}>
-                  Your health advisor
+                <Text style={tw`text-emerald-600 text-xs font-medium`}>
+                  Personalized insights for you
                 </Text>
               </View>
             </View>
 
             <View
-              style={tw`bg-gradient-to-br from-blue-50 to-emerald-50 rounded-2xl p-5 border border-emerald-100 shadow-sm`}
+              style={tw`bg-blue-50 rounded-2xl border border-emerald-100 shadow-sm`}
             >
-              <View style={tw`flex-row items-start mb-3`}>
-                <View style={tw`bg-emerald-100 rounded-full p-2 mr-3 shadow-sm`}>
-                  <Ionicons name="person-circle" size={20} color="#059669" />
-                </View>
-                <View style={tw`flex-1`}>
-                  <Text style={tw`text-emerald-800 font-bold text-sm mb-1`}>
-                    💬 Health Advisor
-                  </Text>
-                  <Text style={tw`text-emerald-600 text-xs font-medium`}>
-                    Personalized insights for you
-                  </Text>
-                </View>
-              </View>
-
-              <View style={tw`bg-white/80 rounded-xl p-4 shadow-sm border border-emerald-50`}>
+              <View style={tw`px-4 py-3`}>
                 <ScrollView
-                  style={tw`max-h-32`}
+                  style={tw`max-h-48`}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled={true}
                 >
@@ -587,22 +578,22 @@ function Index() {
                         // Handle headers (# ## ###)
                         if (line.startsWith('# ')) {
                           processedLine = line.substring(2);
-                          lineStyle = tw`block font-bold text-emerald-800 text-base mb-2`;
+                          lineStyle = tw`font-bold text-emerald-800 text-base mb-2`;
                         } else if (line.startsWith('## ')) {
                           processedLine = line.substring(3);
-                          lineStyle = tw`block font-semibold text-emerald-700 text-sm mb-1`;
+                          lineStyle = tw`font-semibold text-emerald-700 text-sm mb-1`;
                         } else if (line.startsWith('### ')) {
                           processedLine = line.substring(4);
-                          lineStyle = tw`block font-medium text-emerald-600 text-sm mb-1`;
+                          lineStyle = tw`font-medium text-emerald-600 text-sm mb-1`;
                         }
                         // Handle bullet points
                         else if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
                           processedLine = '• ' + line.substring(2);
-                          lineStyle = tw`block font-medium text-emerald-700 ml-2`;
+                          lineStyle = tw`font-medium text-emerald-700 ml-2`;
                         }
                         // Handle bold text (**text** or *text*)
                         else if (line.includes('**') || line.includes('*')) {
-                          lineStyle = tw`block`;
+                          lineStyle = tw`text-gray-800`;
                         }
 
                         // Remove markdown characters for display
@@ -617,7 +608,7 @@ function Index() {
                       })}
                     </Text>
                   ) : (
-                    <View style={tw`flex-row items-center justify-center py-4`}>
+                    <View style={tw`flex-row items-center justify-center py-6`}>
                       <Ionicons name="refresh-circle" size={16} color="#9CA3AF" />
                       <Text style={tw`text-gray-500 text-sm ml-2 font-medium`}>
                         Loading personalized advice...
@@ -795,7 +786,7 @@ function Index() {
                 <TouchableOpacity
                   key={index}
                   style={tw`w-[30%] mb-6`}
-                  onPress={() => navigation.navigate(action.route)}
+                  onPress={() => router.push(action.route)}
                   activeOpacity={0.8}
                 >
                   <View style={tw`relative`}>
@@ -834,7 +825,16 @@ function Index() {
         </ScrollView>
       </View>
     </SafeAreaView>
-  );
+    );
+  } catch (error) {
+    console.error('[Home] Error rendering Home screen:', error);
+    return (
+      <SafeAreaView style={tw`flex-1 bg-[#f8fafc] justify-center items-center`}>
+        <Text style={tw`text-red-500 text-lg font-bold text-center`}>Error loading Home screen</Text>
+        <Text style={tw`text-gray-600 text-center mt-4`}>{error.message}</Text>
+      </SafeAreaView>
+    );
+  }
 }
 
 export default Index;

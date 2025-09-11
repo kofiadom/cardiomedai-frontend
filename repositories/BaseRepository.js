@@ -47,22 +47,30 @@ class BaseRepository {
   // Get record by ID (direct API call)
   async findById(id) {
     try {
-      const response = await fetch(`${this.baseUrl}${this.apiEndpoint}/${id}`, {
+      const url = `${this.baseUrl}${this.apiEndpoint}/${id}`;
+      console.log(`[${this.tableName}Repository] Fetching record by ID: ${url}`);
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
+      console.log(`[${this.tableName}Repository] Response status: ${response.status}`);
+
       if (!response.ok) {
         if (response.status === 404) {
+          console.log(`[${this.tableName}Repository] User not found (404)`);
           return null;
         }
         const errorText = await response.text();
+        console.error(`[${this.tableName}Repository] HTTP error: ${response.status} - ${errorText}`);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const record = await response.json();
+      console.log(`[${this.tableName}Repository] Record found:`, record);
       return record;
     } catch (error) {
       console.error(`[${this.tableName}Repository] FindById failed:`, error);

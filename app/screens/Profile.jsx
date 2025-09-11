@@ -12,18 +12,20 @@ import tw from "twrnc";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import ScreenHeader from "../../components/ScreenHeader";
-import UserProvider from "../../context/userContext";
+import { useUser } from "../../context/userContext";
 
 function Profile() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-  const { data: users, userLoading, error } = useContext(UserProvider) || {};
-  
-  // Get the first user (assuming single user app for now)
-  const currentUser = users && users.length > 0 ? users[0] : null;
+  const { currentUser, userLoading, error, logoutUser } = useUser();
+
+  console.log('[Profile] Profile screen loaded');
+  console.log('[Profile] Current user from context:', currentUser);
+  console.log('[Profile] User loading:', userLoading);
+  console.log('[Profile] Error:', error);
 
   const getInitials = (user) => {
     if (!user) return "U";
@@ -32,7 +34,13 @@ function Profile() {
   };
 
   const handleEditProfile = () => {
-    navigation.navigate("screens/EditProfile");
+    router.push("screens/EditProfile");
+  };
+
+  const handleLogout = () => {
+    console.log('[Profile] Logging out user');
+    logoutUser();
+    router.replace("screens/Login");
   };
 
   const ProfileField = ({ icon, label, value, iconColor = "#6B7280" }) => (
@@ -63,7 +71,8 @@ function Profile() {
     );
   }
 
-  if (error || !currentUser) {
+  // Only show error if we don't have user data from context
+  if (!currentUser && (error || !userLoading)) {
     return (
       <SafeAreaView style={tw`flex-1 bg-[#f8fafc]`}>
         <StatusBar style="dark" />
@@ -119,13 +128,24 @@ function Profile() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={tw`bg-purple-500 px-6 py-3 rounded-2xl flex-row items-center`}
-                onPress={() => navigation.navigate('notification-settings')}
+                style={tw`bg-purple-500 px-6 py-3 rounded-2xl flex-row items-center mb-3`}
+                onPress={() => router.push('notification-settings')}
                 activeOpacity={0.8}
               >
                 <Ionicons name="notifications" size={18} color="white" />
                 <Text style={tw`text-white font-semibold ml-2`}>
                   Notification Settings
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={tw`bg-red-500 px-6 py-3 rounded-2xl flex-row items-center`}
+                onPress={handleLogout}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="log-out" size={18} color="white" />
+                <Text style={tw`text-white font-semibold ml-2`}>
+                  Logout
                 </Text>
               </TouchableOpacity>
             </View>

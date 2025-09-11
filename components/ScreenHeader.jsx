@@ -2,16 +2,13 @@ import { useContext } from "react";
 import { Text, View, Platform, TouchableOpacity } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import tw from "twrnc";
-import UserProvider from "../context/userContext";
+import { useUser } from "../context/userContext";
 
 function ScreenHeader() {
-  const navigation = useNavigation();
-  const { data: users, userLoading } = useContext(UserProvider) || {};
-
-  // Get the first user (assuming single user app for now)
-  const currentUser = users && users.length > 0 ? users[0] : null;
+  const router = useRouter();
+  const { currentUser, userLoading, logoutUser } = useUser();
 
   // Generate initials from full name or username
   const getInitials = (user) => {
@@ -26,7 +23,14 @@ function ScreenHeader() {
   };
 
   const handleProfilePress = () => {
-    navigation.navigate("screens/Profile");
+    console.log('[ScreenHeader] Navigating to Profile screen');
+    router.push("screens/Profile");
+  };
+
+  const handleLogout = () => {
+    console.log('[ScreenHeader] Logging out user');
+    logoutUser();
+    router.replace("screens/Login");
   };
 
   return (
@@ -52,11 +56,21 @@ function ScreenHeader() {
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity style={tw`flex flex-row items-center bg-white rounded-2xl px-3 py-3 border border-[#e2e8f0]`}>
-        <View style={tw`w-2.5 h-2.5 bg-[#ef4444] rounded-full mr-2`} />
-        <Text style={tw`font-bold text-[#1e293b] text-sm mr-1`}>3</Text>
-        <Ionicons name="notifications-outline" size={22} color="#1e293b" />
-      </TouchableOpacity>
+      <View style={tw`flex-row items-center`}>
+        <TouchableOpacity style={tw`flex flex-row items-center bg-white rounded-2xl px-3 py-3 border border-[#e2e8f0] mr-3`}>
+          <View style={tw`w-2.5 h-2.5 bg-[#ef4444] rounded-full mr-2`} />
+          <Text style={tw`font-bold text-[#1e293b] text-sm mr-1`}>3</Text>
+          <Ionicons name="notifications-outline" size={22} color="#1e293b" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={tw`bg-red-500 rounded-2xl px-3 py-3`}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="log-out" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
     </View>
   )
 }

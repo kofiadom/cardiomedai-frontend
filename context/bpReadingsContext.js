@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import bpReadingsRepository from "../repositories/BPReadingsRepository";
+import { useUser } from "./userContext";
 
 const BpReaderProvider = createContext();
 
@@ -7,8 +8,9 @@ export const BpReaderContext = ({ children }) => {
   const [data, setData] = useState([]);
   const [error, setError] = useState(null);
   const [bpReaderLoading, setBpReaderLoading] = useState(true);
+  const { currentUser } = useUser();
 
-  const USER_ID = 1; // TODO: Get from user context
+  const USER_ID = currentUser?.id || 1; // Use current user ID or fallback to 1
 
   // Load data from repository
   const loadData = async () => {
@@ -86,10 +88,12 @@ export const BpReaderContext = ({ children }) => {
     await loadData();
   };
 
-  // Initial data load
+  // Initial data load and reload when user changes
   useEffect(() => {
-    loadData();
-  }, []);
+    if (currentUser) {
+      loadData();
+    }
+  }, [currentUser]);
 
   const value = {
     // Data

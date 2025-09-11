@@ -20,7 +20,7 @@ export default function RootLayout() {
         try {
           const notificationsSuccess = await NotificationService.initialize();
           if (notificationsSuccess) {
-            await NotificationService.scheduleDailyAIInsights();
+            // Don't schedule daily insights here - will be done when user logs in
             console.log('✅ Notifications ready');
           } else {
             console.warn('⚠️ Notifications not available - permissions denied');

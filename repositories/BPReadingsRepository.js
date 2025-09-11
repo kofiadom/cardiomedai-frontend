@@ -2,7 +2,7 @@ import BaseRepository from './BaseRepository';
 
 class BPReadingsRepository extends BaseRepository {
   constructor() {
-    super('bp_readings', '/bp/readings/');
+    super('bp_readings', '/bp/readings');
   }
 
   // Create new BP reading

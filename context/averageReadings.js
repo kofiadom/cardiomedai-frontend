@@ -1,9 +1,8 @@
-import { createContext } from "react";
+import { createContext, useContext } from "react";
 import useSWR from "swr";
+import { useUser } from "./userContext";
 
 const AverageBpProvider = createContext();
-
-const ENDPOINT = "https://staging.codinnovations.com/cardiomed/bp/readings/stats/1";
 
 const fetcher = async (url) => {
   const res = await fetch(url, {
@@ -22,7 +21,15 @@ const fetcher = async (url) => {
 }
 
 export const AverageBpContext = ({ children }) => {
-  const { data: average, error, isLoading: averageLoading, mutate } = useSWR(ENDPOINT, fetcher);
+  const { currentUser } = useUser();
+  const userId = currentUser?.id || 1;
+  const ENDPOINT = `https://staging.codinnovations.com/cardiomed/bp/readings/stats/${userId}`;
+
+  const { data: average, error, isLoading: averageLoading, mutate } = useSWR(
+    currentUser ? ENDPOINT : null, // Only fetch if user is logged in
+    fetcher
+  );
+
   return (
     <AverageBpProvider.Provider value={{ average, error, averageLoading, mutate }}>
       {children}

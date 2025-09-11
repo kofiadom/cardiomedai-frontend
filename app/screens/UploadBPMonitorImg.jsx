@@ -19,10 +19,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import ScreenHeader from "../../components/ScreenHeader";
 import BpReaderProvider from "../../context/bpReadingsContext";
+import { useUser } from "../../context/userContext";
 
 function UploadBPMonitorImg() {
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
+  const { currentUser } = useUser();
   const { mutate } = useContext(BpReaderProvider);
 
   const [selectedImage, setSelectedImage] = useState(null);
@@ -134,8 +136,7 @@ function UploadBPMonitorImg() {
         name: 'bp_monitor.jpg',
       });
 
-      // Add user_id (hardcoded to 1 for now, should come from user context)
-      formData.append('user_id', '1');
+      formData.append('user_id', currentUser?.id?.toString() || '1');
 
       // Add notes if provided
       if (notes.trim()) {
@@ -186,7 +187,7 @@ function UploadBPMonitorImg() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: 1, // Should come from user context
+          user_id: currentUser?.id || 1,
           systolic: ocrResults.systolic,
           diastolic: ocrResults.diastolic,
           pulse: ocrResults.pulse,

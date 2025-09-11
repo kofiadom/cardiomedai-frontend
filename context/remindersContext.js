@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import remindersRepository from "../repositories/RemindersRepository";
 import NotificationService from "../services/notificationService";
+import { useUser } from "./userContext";
 
 const RemindersProvider = createContext();
 
@@ -26,7 +27,8 @@ export const RemindersContext = ({ children }) => {
   const [upcomingMedLoading, setUpcomingMedLoading] = useState(true);
   const [upcomingBPLoading, setUpcomingBPLoading] = useState(true);
 
-  const USER_ID = 1; // TODO: Get from user context
+  const { currentUser } = useUser();
+  const USER_ID = currentUser?.id || 1; // Use current user ID or fallback to 1
 
   // Load all reminders data
   const loadAllData = async () => {
@@ -323,10 +325,12 @@ export const RemindersContext = ({ children }) => {
   const mutateUpcomingMed = loadUpcomingReminders;
   const mutateUpcomingBP = loadUpcomingReminders;
 
-  // Initial data load
+  // Initial data load and reload when user changes
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (currentUser) {
+      loadAllData();
+    }
+  }, [currentUser]);
 
   const value = {
     // Data

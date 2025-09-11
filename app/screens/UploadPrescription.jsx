@@ -19,11 +19,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import ScreenHeader from "../../components/ScreenHeader";
 import RemindersProvider from "../../context/remindersContext";
+import { useUser } from "../../context/userContext";
 
 function UploadPrescription() {
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-  
+  const { currentUser } = useUser();
+
   const { mutateMedication } = useContext(RemindersProvider) || {};
   
   const [selectedImage, setSelectedImage] = useState(null);
@@ -117,8 +119,8 @@ function UploadPrescription() {
         type: 'image/jpeg',
         name: 'prescription.jpg',
       });
-      
-      formData.append('user_id', '1');
+
+      formData.append('user_id', currentUser?.id?.toString() || '1');
       
       if (notes.trim()) {
         formData.append('notes', notes.trim());
@@ -166,7 +168,7 @@ function UploadPrescription() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: 1,
+          user_id: currentUser?.id || 1,
           extracted_data: ocrResults.extracted_data,
           notes: notes.trim() || null,
         }),

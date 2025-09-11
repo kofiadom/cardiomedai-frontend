@@ -15,12 +15,14 @@ import tw from "twrnc";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../../components/ScreenHeader";
+import { useUser } from "../../context/userContext";
 
 function AddReading() {
   const router = useRouter()
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-  const user_id = 1
+  const { currentUser } = useUser();
+  const user_id = currentUser?.id || 1
 
   const [formData, setFormData] = useState({
     systolic: '',

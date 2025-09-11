@@ -18,9 +18,9 @@ export const UserContext = ({ children }) => {
       const users = await userRepository.findAll();
       setData(users);
       
-      // Get current user (assuming user ID 1)
-      const user = await userRepository.getCurrentUser();
-      setCurrentUser(user);
+      // Don't automatically load a current user - only set when explicitly logged in
+      // const user = await userRepository.getCurrentUser();
+      // setCurrentUser(user);
     } catch (err) {
       console.error('[UserContext] Failed to load data:', err);
       setError(err.message);
@@ -73,6 +73,33 @@ export const UserContext = ({ children }) => {
     }
   };
 
+  // Login user by ID
+  const loginUser = async (userId) => {
+    try {
+      console.log('[UserContext] Attempting to login with user ID:', userId);
+      const user = await userRepository.findById(userId);
+      console.log('[UserContext] User lookup result:', user);
+
+      if (user) {
+        console.log('[UserContext] User found, setting as current user:', user);
+        setCurrentUser(user);
+        return user;
+      } else {
+        console.log('[UserContext] User not found for ID:', userId);
+        throw new Error(`User with ID ${userId} not found. Please check the ID or create a new account.`);
+      }
+    } catch (err) {
+      console.error('[UserContext] Failed to login user:', err);
+      throw err;
+    }
+  };
+
+  // Logout user
+  const logoutUser = () => {
+    console.log('[UserContext] Logging out user');
+    setCurrentUser(null);
+  };
+
   // Mutate function for compatibility with existing code
   const mutate = async () => {
     await loadData();
@@ -89,13 +116,15 @@ export const UserContext = ({ children }) => {
     currentUser,
     error,
     userLoading,
-    
+
     // Methods
     mutate,
     createUser,
     updateProfile,
     getUserByUsername,
     getUserByEmail,
+    loginUser,
+    logoutUser,
   };
 
   return (

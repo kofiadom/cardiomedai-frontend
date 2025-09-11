@@ -1,9 +1,8 @@
-import { createContext } from "react";
+import { createContext, useContext } from "react";
 import useSWR from "swr";
+import { useUser } from "./userContext";
 
 const HealthAdvisorProvider = createContext();
-
-const ENDPOINT = "https://staging.codinnovations.com/cardiomed/health-advisor/advice/1";
 
 const fetcher = async (url) => {
   const res = await fetch(url, {
@@ -22,7 +21,15 @@ const fetcher = async (url) => {
 }
 
 export const HealthAdvisorContext = ({ children }) => {
-  const { data: advisor, error, isLoading: advisorLoading, mutate } = useSWR(ENDPOINT, fetcher);
+  const { currentUser } = useUser();
+  const userId = currentUser?.id || 1;
+  const ENDPOINT = `https://staging.codinnovations.com/cardiomed/health-advisor/advice/${userId}`;
+
+  const { data: advisor, error, isLoading: advisorLoading, mutate } = useSWR(
+    currentUser ? ENDPOINT : null, // Only fetch if user is logged in
+    fetcher
+  );
+
   return (
     <HealthAdvisorProvider.Provider value={{ advisor, error, advisorLoading, mutate }}>
       {children}

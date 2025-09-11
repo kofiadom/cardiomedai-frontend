@@ -1,4 +1,4 @@
-import { useEffect, useContext } from "react";
+import { useEffect } from "react";
 import {
   Text,
   View,
@@ -9,24 +9,36 @@ import {
 import tw from "twrnc";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import BpReaderProvider from "@/context/bpReadingsContext";
-import AverageBpProvider from "@/context/averageReadings";
-import HealthAdvisorProvider from "@/context/healthAdvisorContext";
+import { useUser } from "@/context/userContext";
 
 
 function Index() {
   const router = useRouter();
   const screenWidth = Dimensions.get("window").width;
   const containerWidth = screenWidth * 0.92;
-  const { averageLoading } = useContext(AverageBpProvider);
-  const { bpReaderLoading } = useContext(BpReaderProvider);
-  const { advisorLoading } = useContext(HealthAdvisorProvider)
+  const { currentUser, userLoading } = useUser();
 
   useEffect(() => {
-    if (!averageLoading && !bpReaderLoading && !advisorLoading) {
-      router.push('/screens/Home');
+    // Only navigate once when the component mounts and user state is determined
+    console.log('[Index] Navigation check - userLoading:', userLoading, 'currentUser:', currentUser?.full_name || 'null');
+    
+    if (!userLoading) {
+      // Add a small delay to prevent interference with login navigation
+      const navigationTimeout = setTimeout(() => {
+        if (currentUser) {
+          console.log('[Index] User already logged in, redirecting to Home');
+          router.replace('/screens/Home');
+        } else {
+          console.log('[Index] No user logged in, redirecting to Login');
+          router.replace('/screens/Login');
+        }
+      }, 100);
+
+      return () => clearTimeout(navigationTimeout);
+    } else {
+      console.log('[Index] Still loading user state, waiting...');
     }
-  }, [averageLoading, bpReaderLoading, advisorLoading])
+  }, [currentUser, userLoading, router])
 
   return (
     <SafeAreaView style={tw`flex-1 bg-[#fff]`}>

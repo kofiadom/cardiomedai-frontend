@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 const BASE_URL = "https://staging.codinnovations.com/cardiomed";
-const USER_ID = 1; // This should come from user context in a real app
+// USER_ID will be passed dynamically from user context
 
 // Configure how notifications are handled when app is in foreground
 Notifications.setNotificationHandler({
@@ -183,9 +183,14 @@ class NotificationService {
   }
 
   // Fetch daily insights from health advisor API
-  async fetchDailyInsights() {
+  async fetchDailyInsights(userId = null) {
     try {
-      const response = await fetch(`${BASE_URL}/health-advisor/advice/${USER_ID}?message=Good morning! Please give me my daily health insights and recommendations.`, {
+      if (!userId) {
+        console.warn('No user ID provided for health insights, using fallback message');
+        return 'Good morning! Check your health progress and stay on track with your wellness goals today! 💪';
+      }
+
+      const response = await fetch(`${BASE_URL}/health-advisor/advice/${userId}?message=Good morning! Please give me my daily health insights and recommendations.`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +211,7 @@ class NotificationService {
   }
 
   // Schedule daily AI insights notification (8 AM every day)
-  async scheduleDailyAIInsights() {
+  async scheduleDailyAIInsights(userId = null) {
     try {
       // Cancel existing AI insights notifications
       await this.cancelNotificationsByType('ai_insight');
@@ -230,7 +235,7 @@ class NotificationService {
       }
 
       // Fetch personalized insights from health advisor
-      const personalizedMessage = await this.fetchDailyInsights();
+      const personalizedMessage = await this.fetchDailyInsights(userId);
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -239,7 +244,8 @@ class NotificationService {
           data: {
             type: 'ai_insight',
             timestamp: Date.now(),
-            source: 'health_advisor'
+            source: 'health_advisor',
+            userId: userId
           },
         },
         trigger,
@@ -387,10 +393,10 @@ class NotificationService {
   }
 
   // Send immediate AI insights notification (for testing or manual triggers)
-  async sendImmediateAIInsights() {
+  async sendImmediateAIInsights(userId = null) {
     try {
       // Fetch personalized insights from health advisor
-      const personalizedMessage = await this.fetchDailyInsights();
+      const personalizedMessage = await this.fetchDailyInsights(userId);
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -399,7 +405,8 @@ class NotificationService {
           data: {
             type: 'ai_insight_immediate',
             timestamp: Date.now(),
-            source: 'health_advisor'
+            source: 'health_advisor',
+            userId: userId
           },
         },
         trigger: { seconds: 1 }, // Send immediately
